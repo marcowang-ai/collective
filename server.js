@@ -15,6 +15,7 @@ const LOC = {
   POLISH_BAR:    { lat: 29.816692217268653, lng: -95.42183155692648, radius: 120 },
   THREADFARE:    { lat: 29.816975016979047, lng: -95.4209333541323,  radius: 120 },
   KIDS_CREATE:   { lat: 29.816755283414313, lng: -95.42137848171349, radius: 120 },
+  TULUM:        { lat: 29.817021307396466, lng: -95.42145858820318, radius: 120 }  // TODO: Update coordinates
 };
 const ENFORCE_GEOFENCE = true; // set false to warn-only
 
@@ -25,7 +26,8 @@ const DEFAULT_BENEFIT = {
   FAT_CAT: "BOGO_SCOOP",
   POLISH_BAR: "DAZZLE_DRY_UPGRADE",
   THREADFARE: "PERCENT_10_1X",
-  KIDS_CREATE: "FRIDAY_WORKSHOP" // change to RETAIL_15_1X if you prefer
+  KIDS_CREATE: "FRIDAY_WORKSHOP",
+  TULUM: "PERCENT_10"
 };
 
 const DEALS = {
@@ -103,6 +105,17 @@ const DEALS = {
         passFieldRemaining: "kidscreate_retail_remaining"
       }
     }
+  },
+  TULUM: {
+    key: "TULUM",
+    label: "Tulum Spa",
+    benefits: {
+      PERCENT_10: {
+        label: "10% Off Service/Retail",
+        maxPerMonth: 1,
+        passFieldRemaining: "tulum_remaining"
+      }
+    }
   }
 };
 
@@ -147,7 +160,7 @@ app.post("/issue-test-badge", async (req, res) => {
       }
     },
     pass: {
-      id: "P-001",  // Matches memberId
+      id: "P-001",
       attributes: {
         sonoma_remaining: "1",  // Changed to strings
         littlesister_remaining: "1",
@@ -155,7 +168,8 @@ app.post("/issue-test-badge", async (req, res) => {
         polishbar_remaining: "1",
         threadfare_remaining: "1",
         kidscreate_workshop_remaining: "1",
-        kidscreate_retail_remaining: "1"
+        kidscreate_retail_remaining: "1",
+        tulum_remaining: "1"
       }
     }
   };
@@ -388,8 +402,17 @@ function renderControls(vendorKey){
 function renderShopChoices(){
   const box = $('#controls'); box.style.display='block';
   let inner = '<h3 style="margin-top:0">Pick the shop</h3><div class="row" style="gap:8px">';
+  const labels = {
+    SONOMA: "Sonoma - 10% off purchase",
+    LITTLE_SISTER: "Little Sister - 10% off",
+    FAT_CAT: "Fat Cat Creamery - Buy 1 Get 1 Scoop",
+    POLISH_BAR: "Polish Bar - Free Dazzle Dry Upgrade",
+    THREADFARE: "Threadfare - 10% Off",
+    KIDS_CREATE: "KidCreate - One Free Friday Workshop / 15% off retail",
+    TULUM: "Tulum - 10% off service/retail"
+  };
   for (const k of Object.keys(LOC)){
-    inner += '<button data-k="'+k+'">'+k.replaceAll('_',' ')+'</button>';
+    inner += '<button data-k="'+k+'">'+labels[k]+'</button>';
   }
   inner += '</div>';
   box.innerHTML = inner;
