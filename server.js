@@ -1,5 +1,6 @@
 import express from 'express';
 import 'dotenv/config';
+import cors from 'cors';
 
 // ENV vars
 const BADGE_API_KEY = process.env.BADGE_API_KEY;
@@ -43,6 +44,11 @@ function withinFence(geo, center){
 
 const app = express();
 app.use(express.json());
+app.use(cors({
+  origin: ['https://flowe.studio', 'https://flowe-collective.onrender.com'],
+  methods: ['GET', 'POST'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Test badge endpoint
 app.post("/issue-test-badge", async (req, res) => {
@@ -174,10 +180,11 @@ app.get("/pid", (_req, res) => {
   });
 });
 
-// Add this before app.listen()
+// Add before app.listen()
 app.get("/health", (_req, res) => {
   res.json({ 
     status: "ok",
+    url: "https://flowe-collective.onrender.com",
     timestamp: new Date().toISOString(),
     env: {
       hasApiKey: !!BADGE_API_KEY,
