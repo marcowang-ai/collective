@@ -760,7 +760,25 @@ async function issueBadge() {
     
     if (result.ok) {
       resultDiv.className = 'success';
-      resultDiv.innerHTML = 'Pass created successfully!<br>Member ID: ' + memberId;
+      resultDiv.innerHTML = `
+        <div style="margin-bottom:15px">✅ Pass created successfully!</div>
+        <div style="margin-bottom:15px">
+          <a href="${result.data.pass.downloadUrl}" target="_blank" 
+             style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-right:10px">
+            Download Pass
+          </a>
+          <a href="/s?pid=${memberId}" 
+             style="color:var(--dark);text-decoration:none;border-bottom:1px solid">
+            View Redemption Page
+          </a>
+        </div>
+        <div class="hint">Member ID: ${memberId}</div>
+      `;
+
+      // Auto-download after 1 second
+      setTimeout(() => {
+        window.location.href = result.data.pass.downloadUrl;
+      }, 1000);
     } else {
       resultDiv.className = 'error';
       resultDiv.innerHTML = 'Error: ' + (result.error || 'Unknown error');
