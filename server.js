@@ -141,6 +141,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+// Add logging middleware
+app.use((req, res, next) => {
+  console.log('Request URL:', req.url);
+  console.log('Request body:', req.body);
+  next();
+});
+
 // Test badge endpoint
 app.post("/issue-test-badge", async (req, res) => {
   if (!BADGE_TEMPLATE_ID || !BADGE_API_KEY) {
@@ -184,6 +191,66 @@ app.post("/issue-test-badge", async (req, res) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify(testPayload)
+    });
+
+    const data = await response.json();
+    res.json({ ok: response.ok, data });
+  } catch (error) {
+    res.status(500).json({ ok: false, error: error.message });
+  }
+});
+
+// Issue badge endpoint
+app.post("/issue-badge", async (req, res) => {
+  if (!BADGE_TEMPLATE_ID || !BADGE_API_KEY) {
+    return res.status(400).json({ 
+      ok: false, 
+      error: "Missing Badge API configuration" 
+    });
+  }
+
+  const { name, email, memberId } = req.body;
+
+  if (!name || !email || !memberId) {
+    return res.status(400).json({
+      ok: false,
+      error: "Missing required fields: name, email, memberId"
+    });
+  }
+
+  const payload = {
+    passTemplateId: BADGE_TEMPLATE_ID,
+    user: {
+      id: `user_${memberId}`,
+      attributes: {
+        name: name,
+        email: email,
+        memberId: memberId
+      }
+    },
+    pass: {
+      id: memberId,
+      attributes: {
+        sonoma_remaining: "1",
+        littlesister_remaining: "1",
+        fatcat_remaining: "1",
+        polishbar_remaining: "1",
+        threadfare_remaining: "1",
+        kidscreate_workshop_remaining: "1",
+        kidscreate_retail_remaining: "1",
+        tulum_remaining: "1"
+      }
+    }
+  };
+
+  try {
+    const response = await fetch("https://api.trybadge.com/v0/rpc/userPassUpsert", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${BADGE_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
     });
 
     const data = await response.json();
@@ -297,11 +364,11 @@ app.get("/health", (_req, res) => {
 });
 
 // Add debug logging middleware (must be before routes)
-app.use((req, res, next) => {
-  console.log('Request URL:', req.url);
-  console.log('Query params:', req.query);
-  next();
-});
+// app.use((req, res, next) => {
+//   console.log('Request URL:', req.url);
+//   console.log('Query params:', req.query);
+//   next();
+// });
 
 // Add debug endpoint (before /s)
 app.get("/debug-pid", (req, res) => {
@@ -502,4 +569,68 @@ function initForVendor(vendorKey, auto=false){
   });
 })();
 </script>`);
+});
+
+// Add this new endpoint before app.listen()
+
+app.get("/issue", (req, res) => {
+  res.type("html").send(`<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Issue Badge</title>
+<style>
+  body { font-family: system-ui; max-width: 600px; margin: 20px auto; padding: 0 20px; }
+  .form-group { margin: 15px 0; }
+  label { display: block; margin-bottom: 5px; }
+  input { width: 100%; padding: 8px; margin-bottom: 10px; }
+  button { padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 5px; }
+  #result { margin-top: 20px; }
+</style>
+
+<h2>Issue New Badge</h2>
+<div class="form-group">
+  <label>Name:</label>
+  <input type="text" id="name" placeholder="Full Name">
+</div>
+<div class="form-group">
+  <label>Email:</label>
+  <input type="email" id="email" placeholder="email@example.com">
+</div>
+<div class="form-group">
+  <label>Member ID:</label>
+  <input type="text" id="memberId" placeholder="F2023-001">
+</div>
+<button onclick="issueBadge()">Issue Badge</button>
+<div id="result"></div>
+
+<script>
+async function issueBadge() {
+  const name = document.getElementById('name').value;
+  const email = document.getElementById('email').value;
+  const memberId = document.getElementById('memberId').value;
+  
+  try {
+    const response = await fetch('https://flowe-collective.onrender.com/issue-badge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, memberId })
+    });
+    
+    const result = await response.json();
+    document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+    
+    if (result.ok) {
+      setTimeout(() => {
+        window.location.href = 'https://flowe-collective.onrender.com/s?pid=' + memberId;
+      }, 2000);
+    }
+  } catch (error) {
+    document.getElementById('result').innerHTML = '<pre style="color:red">' + error + '</pre>';
+  }
+}
+</script>`);
+});
+
+// Add this at the end
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
