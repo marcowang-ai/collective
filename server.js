@@ -9,13 +9,13 @@ const PORT = process.env.PORT || 3000; // Changed back to 3000 for Render compat
 
 // ======== VENDOR GEOFENCES ========
 const LOC = {
-  SONOMA:        { lat: 29.817091641171505, lng: -95.4221111615325,  radius: 120 },
-  LITTLE_SISTER: { lat: 29.81713966152203,  lng: -95.42093737744574, radius: 120 },
-  FAT_CAT:       { lat: 29.81685471204442,  lng: -95.42190629708813, radius: 120 },
-  POLISH_BAR:    { lat: 29.816692217268653, lng: -95.42183155692648, radius: 120 },
-  THREADFARE:    { lat: 29.816975016979047, lng: -95.4209333541323,  radius: 120 },
-  KIDS_CREATE:   { lat: 29.816755283414313, lng: -95.42137848171349, radius: 120 },
-  TULUM:        { lat: 29.817021307396466, lng: -95.42145858820318, radius: 120 }  // TODO: Update coordinates
+  SONOMA:        { lat: 29.817091641171505, lng: -95.4221111615325,  radius: 7 },
+  LITTLE_SISTER: { lat: 29.81713966152203,  lng: -95.42093737744574, radius: 7 },
+  FAT_CAT:       { lat: 29.81685471204442,  lng: -95.42190629708813, radius: 7 },
+  POLISH_BAR:    { lat: 29.816692217268653, lng: -95.42183155692648, radius: 7 },
+  THREADFARE:    { lat: 29.816975016979047, lng: -95.4209333541323,  radius: 7 },
+  KIDS_CREATE:   { lat: 29.816755283414313, lng: -95.42137848171349, radius: 7 },
+  TULUM:         { lat: 29.817021307396466, lng: -95.42145858820318, radius: 7 }
 };
 const ENFORCE_GEOFENCE = true; // set false to warn-only
 
