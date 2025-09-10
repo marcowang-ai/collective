@@ -441,8 +441,9 @@ async function redeem(vendorKey, overrideBenefit){
     body.context = { purchaseScope: 'CAFE' };
   }
 
-  const r = await fetch('/redeem/'+vendorKey+'/'+benefitKey, {
-    method:'POST', headers:{'Content-Type':'application/json'},
+  const r = await fetch('https://flowe-collective.onrender.com/redeem/'+vendorKey+'/'+benefitKey, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
     body: JSON.stringify(body)
   });
   const j = await r.json().catch(()=>null);
@@ -472,9 +473,12 @@ function initForVendor(vendorKey, auto=false){
 }
 
 (function main(){
+  console.log('Raw PID from URL:', q.get('pid'));
+  console.log('Trimmed and decoded PID:', PID);
+  
   const pidDisplay = PID ? ('Pass: <span class="pill">'+PID+'</span>') : '<span class="err">Missing pass id</span>';
-  console.log('Displaying:', pidDisplay); // Debug log
   $('#pidLine').innerHTML = pidDisplay;
+  
   if (!PID) return;
 
   if (!('geolocation' in navigator)){
