@@ -759,8 +759,11 @@ async function issueBadge() {
     const resultDiv = document.getElementById('result');
     
     if (result.ok) {
+      console.log('Success response:', result); // Debug log
       resultDiv.className = 'success';
       const downloadUrl = result.data.pass.downloadUrl;
+      console.log('Download URL:', downloadUrl); // Debug log
+      
       resultDiv.innerHTML = `
         <div style="margin-bottom:20px">
           <div style="font-size:18px;font-weight:500;margin-bottom:8px">
@@ -770,6 +773,7 @@ async function issueBadge() {
         </div>
         <div class="flex" style="margin-bottom:20px;gap:16px">
           <a href="${downloadUrl}" target="_blank" 
+             onclick="event.preventDefault(); window.location.href='${downloadUrl}';"
              style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;
                     border-radius:8px;display:inline-block;font-weight:500;
                     box-shadow:0 2px 4px var(--shadow)">
@@ -782,19 +786,15 @@ async function issueBadge() {
             👁️ View Redemption Page
           </a>
         </div>
-        <div style="margin-top:10px" class="hint">
-          Pass will download automatically in 1 second...
-        </div>
+        <pre style="background:#f6f7f9;padding:10px;border-radius:5px;margin-top:10px;font-size:12px">
+Download URL: ${downloadUrl}
+        </pre>
       `;
 
-      console.log('Download URL:', downloadUrl); // Debug logging
-
       // Auto-download after 1 second
-      if (downloadUrl) {
-        setTimeout(() => {
-          window.location.href = downloadUrl;
-        }, 1000);
-      }
+      setTimeout(() => {
+        window.location.href = downloadUrl;
+      }, 1000);
     } else {
       resultDiv.className = 'error';
       resultDiv.innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
