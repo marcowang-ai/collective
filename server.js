@@ -759,11 +759,21 @@ async function issueBadge() {
     const resultDiv = document.getElementById('result');
     
     if (result.ok) {
-      console.log('Success response:', result); // Debug log
+      console.log('Full API Response:', result); // Debug log
       resultDiv.className = 'success';
-      const downloadUrl = result.data.pass.downloadUrl;
+      
+      // Extract download URL and verify it exists
+      const downloadUrl = result.data?.pass?.downloadUrl;
       console.log('Download URL:', downloadUrl); // Debug log
       
+      if (!downloadUrl) {
+        resultDiv.innerHTML = `
+          <div class="error">Error: No download URL received from Badge API</div>
+          <pre>${JSON.stringify(result, null, 2)}</pre>
+        `;
+        return;
+      }
+
       resultDiv.innerHTML = `
         <div style="margin-bottom:20px">
           <div style="font-size:18px;font-weight:500;margin-bottom:8px">
@@ -772,8 +782,8 @@ async function issueBadge() {
           <div class="hint">Member ID: ${memberId}</div>
         </div>
         <div class="flex" style="margin-bottom:20px;gap:16px">
-          <a href="${downloadUrl}" target="_blank" 
-             onclick="event.preventDefault(); window.location.href='${downloadUrl}';"
+          <a href="${downloadUrl}" 
+             class="download-btn"
              style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;
                     border-radius:8px;display:inline-block;font-weight:500;
                     box-shadow:0 2px 4px var(--shadow)">
@@ -786,10 +796,13 @@ async function issueBadge() {
             👁️ View Redemption Page
           </a>
         </div>
-        <pre style="background:#f6f7f9;padding:10px;border-radius:5px;margin-top:10px;font-size:12px">
-Download URL: ${downloadUrl}
-        </pre>
       `;
+
+      // Add click handler for download button
+      document.querySelector('.download-btn').onclick = (e) => {
+        e.preventDefault();
+        window.location.href = downloadUrl;
+      };
 
       // Auto-download after 1 second
       setTimeout(() => {
