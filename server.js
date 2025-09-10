@@ -163,13 +163,17 @@ app.post("/issue-test-badge", async (req, res) => {
       id: "user_demo",
       attributes: {
         name: "Demo User",
-        memberId: "P-001"  // Added for QR code display
+        memberId: "P-001",
+        holder_name: "Demo User",  // Added
+        display_name: "Demo User"  // Added
       }
     },
     pass: {
       id: "P-001",
       attributes: {
-        sonoma_remaining: "1",  // Changed to strings
+        holder_name: "Demo User",  // Added
+        display_name: "Demo User", // Added
+        sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
         polishbar_remaining: "1",
@@ -225,12 +229,16 @@ app.post("/issue-badge", async (req, res) => {
       attributes: {
         name: name,
         email: email,
-        memberId: memberId
+        memberId: memberId,
+        holder_name: name,  // Added
+        display_name: name  // Added
       }
     },
     pass: {
       id: memberId,
       attributes: {
+        holder_name: name,  // Added
+        display_name: name, // Added
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
@@ -587,6 +595,7 @@ app.get("/issue", (req, res) => {
   #result { margin-top: 20px; padding: 15px; border-radius: 8px; }
   .success { background: #e7f3eb; color: #0a7b25; }
   .error { background: #fde7eb; color: #b00020; }
+  .hint { color: #666; font-size: 0.9em; margin-top: 4px; }
 </style>
 
 <h2>Issue New Collective Pass</h2>
@@ -600,12 +609,43 @@ app.get("/issue", (req, res) => {
 </div>
 <div class="form-group">
   <label>Member ID:</label>
-  <input type="text" id="memberId" placeholder="F2023-001">
+  <div style="display:flex;gap:10px;align-items:center">
+    <input type="text" id="memberId" readonly style="background:#f6f7f9" placeholder="20230910_FC0001">
+    <button onclick="generateId()" style="width:auto">Generate ID</button>
+  </div>
+  <div class="hint">Auto-generated format: YYYYMMDD_FC0001</div>
 </div>
 <button onclick="issueBadge()">Create Pass</button>
 <div id="result"></div>
 
 <script>
+// Keep track of last used number
+let lastNum = parseInt(localStorage.getItem('lastMemberId') || '0');
+
+function padNumber(n) {
+  return String(n).padStart(4, '0');
+}
+
+function generateId() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  
+  lastNum++;
+  localStorage.setItem('lastMemberId', lastNum);
+  
+  const id = \`\${year}\${month}\${day}_FC\${padNumber(lastNum)}\`;
+  document.getElementById('memberId').value = id;
+  return id;
+}
+
+// Generate ID immediately when page loads
+document.addEventListener('DOMContentLoaded', () => {
+  const memberId = generateId();
+  console.log('Generated ID:', memberId);
+});
+
 async function issueBadge() {
   const name = document.getElementById('name').value.trim();
   const email = document.getElementById('email').value.trim();
@@ -627,4 +667,36 @@ async function issueBadge() {
     const result = await response.json();
     const resultDiv = document.getElementById('result');
     
-    if
+    if (result.ok) {
+      resultDiv.className = 'success';
+      resultDiv.innerHTML = \`
+        <div style="margin-bottom:10px">✅ Pass created successfully!</div>
+        <div style="margin-bottom:10px">
+          <a href="\${result.data.pass.downloadUrl}" target="_blank" 
+             style="background:#111;color:#fff;padding:8px 16px;text-decoration:none;border-radius:5px;display:inline-block">
+            Download Pass
+          </a>
+        </div>
+        <div style="margin-bottom:10px">
+          <a href="/s?pid=\${memberId}" 
+             style="color:#111;text-decoration:none;border-bottom:1px solid">
+            View Redemption Page
+          </a>
+        </div>
+        <pre style="background:#f6f7f9;padding:10px;border-radius:5px;margin-top:10px">Pass ID: \${result.data.pass.id}</pre>
+      \`;
+    } else {
+      resultDiv.className = 'error';
+      resultDiv.innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
+    }
+  } catch (error) {
+    document.getElementById('result').className = 'error';
+    document.getElementById('result').innerHTML = 'Error: ' + error.message;
+  }
+}
+</script>`);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
