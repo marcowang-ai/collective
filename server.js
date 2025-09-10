@@ -507,44 +507,95 @@ function renderShopChoices(){
   box.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => initForVendor(b.dataset.k));
 }
 
-async function redeem(vendorKey, overrideBenefit){
+async function redeem(vendorKey, overrideBenefit) {
   const benefitKey = overrideBenefit || DEFAULT_BENEFIT[vendorKey];
   const geo = await getGeo();
   const body = { passId: PID, geo };
 
-  if (vendorKey === 'SONOMA'){
+  // Show loading state
+  const out = $('#result');
+  out.style.display = 'block';
+  out.innerHTML = '<div class="muted">Processing redemption...</div>';
+
+  // Add vendor-specific data
+  if (vendorKey === 'SONOMA') {
     body.cart = { hasBottle: $('#hasBottle')?.checked || false };
   }
-  if (vendorKey === 'FAT_CAT'){
+  if (vendorKey === 'FAT_CAT') {
     const paid = $('#paidScoop')?.checked ? 1 : 0;
     body.cart = { paidItems: { scoop: paid } };
   }
-  if (vendorKey === 'LITTLE_SISTER'){
+  if (vendorKey === 'LITTLE_SISTER') {
     body.context = { purchaseScope: 'CAFE' };
   }
 
-  const r = await fetch('https://flowe-collective.onrender.com/redeem/'+vendorKey+'/'+benefitKey, {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify(body)
-  });
-  const j = await r.json().catch(()=>null);
-  const out = $('#result'); out.style.display = 'block';
-
-  if (j && j.ok){
-    out.innerHTML = '<div class="ok">APPROVED</div>' +
-      '<div class="muted">Remaining this month:</div>' +
-      '<pre style="white-space:pre-wrap">'+JSON.stringify(j.balances,null,2)+'</pre>';
-  } else {
-    const reason = (j && j.reason) || ('HTTP '+r.status);
-    out.innerHTML = '<div class="err">DENIED</div><div>'+reason+'</div>';
+  try {
+    const r = await fetch('/redeem/'+vendorKey+'/'+benefitKey, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    
+    const j = await r.json();
+    
+    if (j && j.ok) {
+      // Get remaining count for current vendor
+      const remainingField = DEALS[vendorKey].benefits[benefitKey].passFieldRemaining;
+      const remaining = j.balances[remainingField];
+      
+      out.innerHTML = `
+        <div style="text-align:center;padding:20px 0;">
+          <div class="ok" style="font-size:24px;margin-bottom:15px">✅ APPROVED</div>
+          <div style="margin-bottom:10px">
+            <strong>${DEALS[vendorKey].label}</strong><br>
+            <span class="muted">${DEALS[vendorKey].benefits[benefitKey].label}</span>
+          </div>
+          <div style="margin-top:15px">
+            <div class="muted">Remaining this month:</div>
+            <div style="font-size:20px;margin-top:5px">
+              ${remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left"}
+            </div>
+          </div>
+        </div>
+      `;
+    } else {
+      const reason = j.reason || 'HTTP '+r.status;
+      out.innerHTML = `
+        <div style="text-align:center;padding:20px 0;">
+          <div class="err" style="font-size:24px;margin-bottom:15px">❌ DENIED</div>
+          <div>${reason}</div>
+        </div>
+      `;
+    }
+  } catch (error) {
+    out.innerHTML = `
+      <div class="err" style="text-align:center;padding:20px 0;">
+        <div style="font-size:24px;margin-bottom:15px">❌ ERROR</div>
+        <div>${error.message}</div>
+      </div>
+    `;
   }
 }
 
 function wireVendorActions(vendorKey){
-  const btn = $('#redeemBtn'); if (btn) btn.onclick = () => redeem(vendorKey);
-  const chg = $('#chooseShop'); if (chg) chg.onclick = renderShopChoices;
-  const useRetail = $('#useRetail'); if (useRetail) useRetail.onclick = () => redeem('KIDS_CREATE','RETAIL_15_1X');
+  const btn = $('#redeemBtn'); 
+  if (btn) {
+    btn.onclick = async (e) => {
+      e.target.disabled = true;
+      e.target.textContent = 'Processing...';
+      await redeem(vendorKey);
+      e.target.disabled = false;
+      e.target.textContent = 'Redeem now';
+    };
+  }
+  const chg = $('#chooseShop'); 
+  if (chg) chg.onclick = renderShopChoices;
+  const useRetail = $('#useRetail'); 
+  if (useRetail) useRetail.onclick = async (e) => {
+    e.target.disabled = true;
+    await redeem('KIDS_CREATE','RETAIL_15_1X');
+    e.target.disabled = false;
+  };
 }
 
 function initForVendor(vendorKey, auto=false){
