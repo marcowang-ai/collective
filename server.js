@@ -174,6 +174,18 @@ app.get("/pid", (_req, res) => {
   });
 });
 
+// Add this before app.listen()
+app.get("/health", (_req, res) => {
+  res.json({ 
+    status: "ok",
+    timestamp: new Date().toISOString(),
+    env: {
+      hasApiKey: !!BADGE_API_KEY,
+      hasTemplateId: !!BADGE_TEMPLATE_ID
+    }
+  });
+});
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // Client-side redeem function (to be called on button click, etc.)
