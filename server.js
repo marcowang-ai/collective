@@ -760,28 +760,45 @@ async function issueBadge() {
     
     if (result.ok) {
       resultDiv.className = 'success';
+      const downloadUrl = result.data.pass.downloadUrl;
       resultDiv.innerHTML = `
-        <div style="margin-bottom:15px">✅ Pass created successfully!</div>
-        <div style="margin-bottom:15px">
-          <a href="${result.data.pass.downloadUrl}" target="_blank" 
-             style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;border-radius:8px;display:inline-block;margin-right:10px">
-            Download Pass
+        <div style="margin-bottom:20px">
+          <div style="font-size:18px;font-weight:500;margin-bottom:8px">
+            ✅ Pass created successfully!
+          </div>
+          <div class="hint">Member ID: ${memberId}</div>
+        </div>
+        <div class="flex" style="margin-bottom:20px;gap:16px">
+          <a href="${downloadUrl}" target="_blank" 
+             style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;
+                    border-radius:8px;display:inline-block;font-weight:500;
+                    box-shadow:0 2px 4px var(--shadow)">
+            ⬇️ Download Pass
           </a>
           <a href="/s?pid=${memberId}" 
-             style="color:var(--dark);text-decoration:none;border-bottom:1px solid">
-            View Redemption Page
+             style="background:var(--accent);color:white;padding:12px 24px;
+                    text-decoration:none;border-radius:8px;display:inline-block;
+                    font-weight:500;box-shadow:0 2px 4px var(--shadow)">
+            👁️ View Redemption Page
           </a>
         </div>
-        <div class="hint">Member ID: ${memberId}</div>
+        <div style="margin-top:10px" class="hint">
+          Pass will download automatically in 1 second...
+        </div>
       `;
 
+      console.log('Download URL:', downloadUrl); // Debug logging
+
       // Auto-download after 1 second
-      setTimeout(() => {
-        window.location.href = result.data.pass.downloadUrl;
-      }, 1000);
+      if (downloadUrl) {
+        setTimeout(() => {
+          window.location.href = downloadUrl;
+        }, 1000);
+      }
     } else {
       resultDiv.className = 'error';
-      resultDiv.innerHTML = 'Error: ' + (result.error || 'Unknown error');
+      resultDiv.innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
+      console.error('Badge API Error:', result); // Debug logging
     }
   } catch (error) {
     document.getElementById('result').className = 'error';
