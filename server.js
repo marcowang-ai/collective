@@ -610,10 +610,10 @@ app.get("/issue", (req, res) => {
 <div class="form-group">
   <label>Member ID:</label>
   <div style="display:flex;gap:10px;align-items:center">
-    <input type="text" id="memberId" readonly style="background:#f6f7f9" placeholder="20230910_FC0001">
-    <button onclick="generateId()" style="width:auto">Generate ID</button>
+    <input type="text" id="memberId" value="" readonly style="background:#f6f7f9">
+    <button onclick="generateId()" style="width:auto">Generate New ID</button>
   </div>
-  <div class="hint">Auto-generated format: YYYYMMDD_FC0001</div>
+  <div class="hint">Format: YYYYMMDD_FCXXXX</div>
 </div>
 <button onclick="issueBadge()">Create Pass</button>
 <div id="result"></div>
@@ -640,11 +640,12 @@ function generateId() {
   return id;
 }
 
-// Generate ID immediately when page loads
-document.addEventListener('DOMContentLoaded', () => {
-  const memberId = generateId();
-  console.log('Generated ID:', memberId);
-});
+// Generate ID immediately when DOM is ready
+document.addEventListener('DOMContentLoaded', generateId);
+// Also generate if the field is empty
+if (!document.getElementById('memberId').value) {
+  generateId();
+}
 
 async function issueBadge() {
   const name = document.getElementById('name').value.trim();
@@ -667,36 +668,4 @@ async function issueBadge() {
     const result = await response.json();
     const resultDiv = document.getElementById('result');
     
-    if (result.ok) {
-      resultDiv.className = 'success';
-      resultDiv.innerHTML = \`
-        <div style="margin-bottom:10px">✅ Pass created successfully!</div>
-        <div style="margin-bottom:10px">
-          <a href="\${result.data.pass.downloadUrl}" target="_blank" 
-             style="background:#111;color:#fff;padding:8px 16px;text-decoration:none;border-radius:5px;display:inline-block">
-            Download Pass
-          </a>
-        </div>
-        <div style="margin-bottom:10px">
-          <a href="/s?pid=\${memberId}" 
-             style="color:#111;text-decoration:none;border-bottom:1px solid">
-            View Redemption Page
-          </a>
-        </div>
-        <pre style="background:#f6f7f9;padding:10px;border-radius:5px;margin-top:10px">Pass ID: \${result.data.pass.id}</pre>
-      \`;
-    } else {
-      resultDiv.className = 'error';
-      resultDiv.innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
-    }
-  } catch (error) {
-    document.getElementById('result').className = 'error';
-    document.getElementById('result').innerHTML = 'Error: ' + error.message;
-  }
-}
-</script>`);
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    if
