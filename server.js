@@ -296,7 +296,14 @@ app.get("/health", (_req, res) => {
   });
 });
 
-// Add debug endpoints
+// Add debug logging middleware (must be before routes)
+app.use((req, res, next) => {
+  console.log('Request URL:', req.url);
+  console.log('Query params:', req.query);
+  next();
+});
+
+// Add debug endpoint (before /s)
 app.get("/debug-pid", (req, res) => {
   res.json({ 
     receivedPid: req.query.pid,
@@ -307,38 +314,6 @@ app.get("/debug-pid", (req, res) => {
     headers: req.headers
   });
 });
-
-// Add debug logging to /s endpoint
-app.use((req, res, next) => {
-  console.log('Request URL:', req.url);
-  console.log('Query params:', req.query);
-  next();
-});
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-// Client-side redeem function (to be called on button click, etc.)
-async function redeem() {
-  // Get pass ID from input field
-  const passId = document.getElementById('pid').value.trim();
-  
-  // Get current location
-  const geo = await getGeo();
-  
-  // Check if bottle is in cart
-  const hasBottle = document.getElementById('hasBottle')?.checked;
-  
-  // Send redemption request to server
-  const resp = await fetch('/redeem/SONOMA/PERCENT_10', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ 
-      passId, 
-      geo,
-      cart: { hasBottle } 
-    })
-  });
-}
 
 // Scan Landing Page: Camera opens this from QR like /s?pid=P-001
 app.get("/s", (req, res) => {
