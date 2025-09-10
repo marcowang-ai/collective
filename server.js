@@ -28,6 +28,84 @@ const DEFAULT_BENEFIT = {
   KIDS_CREATE: "FRIDAY_WORKSHOP" // change to RETAIL_15_1X if you prefer
 };
 
+const DEALS = {
+  SONOMA: {
+    key: "SONOMA",
+    label: "Sonoma",
+    benefits: {
+      PERCENT_10: {
+        label: "10% Off Purchase",
+        maxPerMonth: 1,
+        passFieldRemaining: "sonoma_remaining",
+        conditions: { excludeBottlePurchases: true }
+      }
+    }
+  },
+  LITTLE_SISTER: {
+    key: "LITTLE_SISTER",
+    label: "Little Sister",
+    benefits: {
+      CAFE_PERCENT_10: {
+        label: "10% Off Café",
+        maxPerMonth: 1,
+        passFieldRemaining: "littlesister_remaining",
+        conditions: { purchaseScope: "CAFE" }
+      }
+    }
+  },
+  FAT_CAT: {
+    key: "FAT_CAT",
+    label: "Fat Cat Creamery",
+    benefits: {
+      BOGO_SCOOP: {
+        label: "Buy 1 Get 1 Scoop",
+        maxPerMonth: 1,
+        passFieldRemaining: "fatcat_remaining",
+        conditions: { requiresPaidItem: "scoop" }
+      }
+    }
+  },
+  POLISH_BAR: {
+    key: "POLISH_BAR",
+    label: "Polish Bar",
+    benefits: {
+      DAZZLE_DRY_UPGRADE: {
+        label: "Free Dazzle Dry Upgrade",
+        maxPerMonth: 1,
+        passFieldRemaining: "polishbar_remaining"
+      }
+    }
+  },
+  THREADFARE: {
+    key: "THREADFARE",
+    label: "Threadfare",
+    benefits: {
+      PERCENT_10_1X: {
+        label: "10% Off (Once)",
+        maxPerMonth: 1,
+        passFieldRemaining: "threadfare_remaining"
+      }
+    }
+  },
+  KIDS_CREATE: {
+    key: "KIDS_CREATE",
+    label: "Kids Create",
+    benefits: {
+      FRIDAY_WORKSHOP: {
+        label: "Friday Workshop",
+        maxPerMonth: 1,
+        passFieldRemaining: "kidscreate_workshop_remaining",
+        conditions: { weekday: 5 }  // 5 = Friday
+      },
+      RETAIL_15_1X: {
+        label: "15% Off Retail",
+        maxPerMonth: 1,
+        passFieldRemaining: "kidscreate_retail_remaining"
+      }
+    }
+  }
+};
+
 function haversineMeters(aLat,aLng,bLat,bLng){
   const R=6371000, toRad=x=>x*Math.PI/180;
   const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
