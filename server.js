@@ -355,7 +355,8 @@ const DEFAULT_BENEFIT = ${JSON.stringify(DEFAULT_BENEFIT)};
 
 // ---- Utils ----
 const q = new URL(location.href).searchParams;
-const PID = (q.get('pid') || '').trim();
+const PID = decodeURIComponent((q.get('pid') || '').trim());
+console.log('Received PID:', PID); // Debug logging
 const $ = sel => document.querySelector(sel);
 const metersFmt = n => Math.round(n) + ' m';
 
@@ -477,7 +478,9 @@ function initForVendor(vendorKey, auto=false){
 }
 
 (function main(){
-  $('#pidLine').innerHTML = PID ? ('Pass: <span class="pill">'+PID+'</span>') : '<span class="err">Missing pass id</span>';
+  const pidDisplay = PID ? ('Pass: <span class="pill">'+PID+'</span>') : '<span class="err">Missing pass id</span>';
+  console.log('Displaying:', pidDisplay); // Debug log
+  $('#pidLine').innerHTML = pidDisplay;
   if (!PID) return;
 
   if (!('geolocation' in navigator)){
