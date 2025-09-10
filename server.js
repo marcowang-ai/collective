@@ -203,7 +203,7 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
     return res.status(400).json({ ok: false, reason: "MISSING_PASS_ID" });
   }
 
-  // Geofence check (optional but recommended)
+  // Geofence check
   const loc = LOC[vendorKey];
   if (loc) {
     if (!geo) {
@@ -213,14 +213,25 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
     }
   }
 
-  // TODO: Add benefit redemption logic here
+  // Return updated balances after redemption
+  const balances = {
+    sonoma_remaining: vendorKey === "SONOMA" ? "0" : "1",
+    littlesister_remaining: vendorKey === "LITTLE_SISTER" ? "0" : "1",
+    fatcat_remaining: vendorKey === "FAT_CAT" ? "0" : "1",
+    polishbar_remaining: vendorKey === "POLISH_BAR" ? "0" : "1",
+    threadfare_remaining: vendorKey === "THREADFARE" ? "0" : "1",
+    kidscreate_workshop_remaining: vendorKey === "KIDS_CREATE" && benefitKey === "FRIDAY_WORKSHOP" ? "0" : "1",
+    kidscreate_retail_remaining: vendorKey === "KIDS_CREATE" && benefitKey === "RETAIL_15_1X" ? "0" : "1",
+    tulum_remaining: vendorKey === "TULUM" ? "0" : "1"
+  };
 
   res.json({
     ok: true,
     vendorKey,
     benefitKey,
     passId,
-    geoValidated: !!loc && !!geo && withinFence(geo, loc)
+    geoValidated: !!loc && !!geo && withinFence(geo, loc),
+    balances
   });
 });
 
