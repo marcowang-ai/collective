@@ -759,44 +759,26 @@ async function issueBadge() {
     const resultDiv = document.getElementById('result');
     
     if (result.ok) {
-      resultDiv.className = 'success';
       const downloadUrl = result.data.pass.downloadUrl;
+      resultDiv.className = 'success';
       resultDiv.innerHTML = `
-        <div style="margin-bottom:20px">
-          <div style="font-size:18px;font-weight:500;margin-bottom:8px">
-            ✅ Pass created successfully!
-          </div>
-          <div class="hint">Member ID: ${memberId}</div>
-        </div>
-        <div style="display:flex;gap:16px;margin-bottom:20px">
-          <a href="${downloadUrl}" target="_blank" 
-             style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;
-                    border-radius:8px;display:inline-block;font-weight:500;">
-            ⬇️ Download Pass
-          </a>
-          <a href="/s?pid=${memberId}" 
-             style="background:var(--accent);color:white;padding:12px 24px;
-                    text-decoration:none;border-radius:8px;display:inline-block;
-                    font-weight:500;">
-            👁️ View Redemption Page
-          </a>
+        <div style="margin-bottom:10px">✅ Pass created successfully!</div>
+        <div style="margin-bottom:10px">
+          <a href="${downloadUrl}" target="_blank" class="button">Download Pass</a>
+          <a href="/s?pid=${memberId}" class="button secondary">View Redemption Page</a>
         </div>
       `;
-
-      // Auto-download after 1 second
+      
       if (downloadUrl) {
-        setTimeout(() => {
-          window.location.href = downloadUrl;
-        }, 1000);
+        window.location.href = downloadUrl;
       }
     } else {
       resultDiv.className = 'error';
       resultDiv.innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
-      console.error('Badge API Error:', result); // Debug logging
     }
   } catch (error) {
     document.getElementById('result').className = 'error';
-    document.getElementById('result').innerHTML = 'Network error: ' + error.message;
+    document.getElementById('result').innerHTML = 'Error: ' + error.message;
   }
 }
 </script>
