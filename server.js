@@ -586,10 +586,9 @@ function initForVendor(vendorKey, auto=false){
 </script>`);
 });
 
-// Remove both existing /issue and /issue-form endpoints
-// Add this new version before app.listen()
-
+// Update the /issue endpoint
 app.get("/issue", (req, res) => {
+  res.set('Cache-Control', 'no-store');  // Add this line
   res.type("html").send(`<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Issue Badge</title>
