@@ -586,130 +586,36 @@ function initForVendor(vendorKey, auto=false){
 </script>`);
 });
 
-// Update the /issue endpoint
+// Replace the entire /issue endpoint with this simpler version:
+
 app.get("/issue", (req, res) => {
-  res.set('Cache-Control', 'no-store');  // Add this line
   res.type("html").send(`<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Issue Badge</title>
-<style>
-  :root {
-    --sand: #f5f5f1;
-    --beige: #e6e4dc;
-    --dark: #2d2d2a;
-    --accent: #847577;
-    --shadow: rgba(0,0,0,0.1);
-  }
-  body { 
-    font-family: system-ui; 
-    max-width: 600px; 
-    margin: 0 auto; 
-    padding: 40px 20px;
-    background: var(--sand);
-    color: var(--dark);
-    line-height: 1.5;
-  }
-  h2 {
-    margin-bottom: 30px;
-    font-weight: 600;
-  }
-  .form-container {
-    background: white;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 4px 12px var(--shadow);
-  }
-  .form-group { 
-    margin: 20px 0; 
-  }
-  label { 
-    display: block; 
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: var(--dark);
-  }
-  input { 
-    width: 100%; 
-    padding: 12px;
-    border: 1px solid var(--beige);
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.2s;
-  }
-  input:focus {
-    outline: none;
-    border-color: var(--accent);
-  }
-  input[readonly] {
-    background: var(--sand);
-  }
-  button { 
-    padding: 12px 24px;
-    background: var(--dark);
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: opacity 0.2s;
-  }
-  button:hover {
-    opacity: 0.9;
-  }
-  button.secondary {
-    background: var(--accent);
-  }
-  .hint { 
-    color: var(--accent); 
-    font-size: 0.9em; 
-    margin-top: 6px; 
-  }
-  #result { 
-    margin-top: 20px; 
-    padding: 16px;
-    border-radius: 8px;
-  }
-  .success { 
-    background: #e7f3eb; 
-    color: #0a7b25;
-    border: 1px solid #c3e6cb;
-  }
-  .error { 
-    background: #fde7eb; 
-    color: #b00020;
-    border: 1px solid #f5c6cb;
-  }
-  .flex {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-</style>
 
 <h2>Issue New Collective Pass</h2>
-<div class="form-container">
-  <div class="form-group">
-    <label>Full Name:</label>
+<div>
+  <div>
+    <label>Full Name:</label><br>
     <input type="text" id="name" placeholder="Enter member's full name">
   </div>
-  <div class="form-group">
-    <label>Email:</label>
+  <br>
+  <div>
+    <label>Email:</label><br>
     <input type="email" id="email" placeholder="Enter member's email">
   </div>
-  <div class="form-group">
-    <label>Member ID:</label>
-    <div class="flex">
-      <input type="text" id="memberId" value="" readonly>
-      <button onclick="generateId()" class="secondary">Generate New ID</button>
-    </div>
-    <div class="hint">Format: YYYYMMDD_FCXXXX</div>
+  <br>
+  <div>
+    <label>Member ID:</label><br>
+    <input type="text" id="memberId" readonly>
+    <button onclick="generateId()">Generate New ID</button>
   </div>
+  <br>
   <button onclick="issueBadge()">Create Pass</button>
   <div id="result"></div>
 </div>
 
 <script>
-// Keep track of last used number
 let lastNum = parseInt(localStorage.getItem('lastMemberId') || '0');
 
 function padNumber(n) {
@@ -730,12 +636,7 @@ function generateId() {
   return id;
 }
 
-// Generate ID immediately when DOM is ready
 document.addEventListener('DOMContentLoaded', generateId);
-// Also generate if the field is empty
-if (!document.getElementById('memberId').value) {
-  generateId();
-}
 
 async function issueBadge() {
   const name = document.getElementById('name').value.trim();
@@ -743,7 +644,6 @@ async function issueBadge() {
   const memberId = document.getElementById('memberId').value.trim();
   
   if (!name || !email || !memberId) {
-    document.getElementById('result').className = 'error';
     document.getElementById('result').innerHTML = 'Please fill in all fields';
     return;
   }
@@ -756,33 +656,28 @@ async function issueBadge() {
     });
     
     const result = await response.json();
-    const resultDiv = document.getElementById('result');
     
     if (result.ok) {
       const downloadUrl = result.data.pass.downloadUrl;
-      resultDiv.className = 'success';
-      resultDiv.innerHTML = `
-        <div style="margin-bottom:10px">✅ Pass created successfully!</div>
-        <div style="margin-bottom:10px">
-          <a href="${downloadUrl}" target="_blank" class="button">Download Pass</a>
-          <a href="/s?pid=${memberId}" class="button secondary">View Redemption Page</a>
+      document.getElementById('result').innerHTML = \`
+        <div>✅ Pass created successfully!</div>
+        <div>
+          <a href="\${downloadUrl}" target="_blank">Download Pass</a>
+          <a href="/s?pid=\${memberId}">View Redemption Page</a>
         </div>
-      `;
+      \`;
       
       if (downloadUrl) {
         window.location.href = downloadUrl;
       }
     } else {
-      resultDiv.className = 'error';
-      resultDiv.innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
+      document.getElementById('result').innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
     }
   } catch (error) {
-    document.getElementById('result').className = 'error';
     document.getElementById('result').innerHTML = 'Error: ' + error.message;
   }
 }
-</script>
-`);
+</script>`);
 });
 
 app.listen(PORT, () => {
