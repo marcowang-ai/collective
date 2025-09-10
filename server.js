@@ -296,6 +296,25 @@ app.get("/health", (_req, res) => {
   });
 });
 
+// Add debug endpoints
+app.get("/debug-pid", (req, res) => {
+  res.json({ 
+    receivedPid: req.query.pid,
+    decodedPid: decodeURIComponent(req.query.pid || ''),
+    url: req.url,
+    fullUrl: `${req.protocol}://${req.get('host')}${req.originalUrl}`,
+    query: req.query,
+    headers: req.headers
+  });
+});
+
+// Add debug logging to /s endpoint
+app.use((req, res, next) => {
+  console.log('Request URL:', req.url);
+  console.log('Query params:', req.query);
+  next();
+});
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 // Client-side redeem function (to be called on button click, etc.)
