@@ -630,6 +630,65 @@ async function issueBadge() {
 </script>`);
 });
 
+// Add after other endpoints but before app.listen()
+
+app.get("/issue-form", (req, res) => {
+  res.type("html").send(`<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Issue Badge</title>
+<style>
+  body { font-family: system-ui; max-width: 600px; margin: 20px auto; padding: 0 20px; }
+  .form-group { margin: 15px 0; }
+  label { display: block; margin-bottom: 5px; }
+  input { width: 100%; padding: 8px; margin-bottom: 10px; }
+  button { padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 5px; }
+  #result { margin-top: 20px; }
+</style>
+
+<h2>Issue New Badge</h2>
+<div class="form-group">
+  <label>Name:</label>
+  <input type="text" id="name" placeholder="Full Name">
+</div>
+<div class="form-group">
+  <label>Email:</label>
+  <input type="email" id="email" placeholder="email@example.com">
+</div>
+<div class="form-group">
+  <label>Member ID:</label>
+  <input type="text" id="memberId" placeholder="F2023-001">
+</div>
+<button onclick="issueBadge()">Issue Badge</button>
+<div id="result"></div>
+
+<script>
+async function issueBadge() {
+  const name = document.getElementById('name').value;
+  const email = document.getElementById('email').value;
+  const memberId = document.getElementById('memberId').value;
+  
+  try {
+    const response = await fetch('https://flowe-collective.onrender.com/issue-badge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, memberId })
+    });
+    
+    const result = await response.json();
+    document.getElementById('result').innerHTML = '<pre>' + JSON.stringify(result, null, 2) + '</pre>';
+    
+    if (result.ok) {
+      setTimeout(() => {
+        window.location.href = 'https://flowe-collective.onrender.com/s?pid=' + memberId;
+      }, 2000);
+    }
+  } catch (error) {
+    document.getElementById('result').innerHTML = '<pre style="color:red">' + error + '</pre>';
+  }
+}
+</script>`);
+});
+
 // Add this at the end
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
