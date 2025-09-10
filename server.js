@@ -759,21 +759,7 @@ async function issueBadge() {
     const resultDiv = document.getElementById('result');
     
     if (result.ok) {
-      console.log('Full API Response:', result); // Debug log
       resultDiv.className = 'success';
-      
-      // Extract download URL and verify it exists
-      const downloadUrl = result.data?.pass?.downloadUrl;
-      console.log('Download URL:', downloadUrl); // Debug log
-      
-      if (!downloadUrl) {
-        resultDiv.innerHTML = `
-          <div class="error">Error: No download URL received from Badge API</div>
-          <pre>${JSON.stringify(result, null, 2)}</pre>
-        `;
-        return;
-      }
-
       resultDiv.innerHTML = `
         <div style="margin-bottom:20px">
           <div style="font-size:18px;font-weight:500;margin-bottom:8px">
@@ -781,12 +767,11 @@ async function issueBadge() {
           </div>
           <div class="hint">Member ID: ${memberId}</div>
         </div>
-        <div class="flex" style="margin-bottom:20px;gap:16px">
-          <a href="${downloadUrl}" 
-             class="download-btn"
+        <div style="margin-bottom:20px;gap:16px">
+          <a href="${result.data.pass.downloadUrl}" target="_blank" 
              style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;
                     border-radius:8px;display:inline-block;font-weight:500;
-                    box-shadow:0 2px 4px var(--shadow)">
+                    margin-right:10px;box-shadow:0 2px 4px var(--shadow)">
             ⬇️ Download Pass
           </a>
           <a href="/s?pid=${memberId}" 
@@ -798,15 +783,9 @@ async function issueBadge() {
         </div>
       `;
 
-      // Add click handler for download button
-      document.querySelector('.download-btn').onclick = (e) => {
-        e.preventDefault();
-        window.location.href = downloadUrl;
-      };
-
       // Auto-download after 1 second
       setTimeout(() => {
-        window.location.href = downloadUrl;
+        window.location.href = result.data.pass.downloadUrl;
       }, 1000);
     } else {
       resultDiv.className = 'error';
