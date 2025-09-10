@@ -760,6 +760,7 @@ async function issueBadge() {
     
     if (result.ok) {
       resultDiv.className = 'success';
+      const downloadUrl = result.data.pass.downloadUrl;
       resultDiv.innerHTML = `
         <div style="margin-bottom:20px">
           <div style="font-size:18px;font-weight:500;margin-bottom:8px">
@@ -767,26 +768,27 @@ async function issueBadge() {
           </div>
           <div class="hint">Member ID: ${memberId}</div>
         </div>
-        <div style="margin-bottom:20px;gap:16px">
-          <a href="${result.data.pass.downloadUrl}" target="_blank" 
+        <div style="display:flex;gap:16px;margin-bottom:20px">
+          <a href="${downloadUrl}" target="_blank" 
              style="background:var(--dark);color:white;padding:12px 24px;text-decoration:none;
-                    border-radius:8px;display:inline-block;font-weight:500;
-                    margin-right:10px;box-shadow:0 2px 4px var(--shadow)">
+                    border-radius:8px;display:inline-block;font-weight:500;">
             ⬇️ Download Pass
           </a>
           <a href="/s?pid=${memberId}" 
              style="background:var(--accent);color:white;padding:12px 24px;
                     text-decoration:none;border-radius:8px;display:inline-block;
-                    font-weight:500;box-shadow:0 2px 4px var(--shadow)">
+                    font-weight:500;">
             👁️ View Redemption Page
           </a>
         </div>
       `;
 
       // Auto-download after 1 second
-      setTimeout(() => {
-        window.location.href = result.data.pass.downloadUrl;
-      }, 1000);
+      if (downloadUrl) {
+        setTimeout(() => {
+          window.location.href = downloadUrl;
+        }, 1000);
+      }
     } else {
       resultDiv.className = 'error';
       resultDiv.innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
