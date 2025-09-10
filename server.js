@@ -163,16 +163,20 @@ app.post("/issue-test-badge", async (req, res) => {
       id: "user_demo",
       attributes: {
         name: "Demo User",
+        email: "demo@example.com",
         memberId: "P-001",
-        holder_name: "Demo User",  // Added
-        display_name: "Demo User"  // Added
+        holder_name: "Demo User",
+        display_name: "Demo User",
+        pass_id: "P-001"  // Added for display
       }
     },
     pass: {
       id: "P-001",
       attributes: {
-        holder_name: "Demo User",  // Added
-        display_name: "Demo User", // Added
+        holder_name: "Demo User",
+        display_name: "Demo User",
+        pass_id: "P-001",  // Added for display
+        member_id: "P-001", // Added for display
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
@@ -230,15 +234,18 @@ app.post("/issue-badge", async (req, res) => {
         name: name,
         email: email,
         memberId: memberId,
-        holder_name: name,  // Added
-        display_name: name  // Added
+        holder_name: name,
+        display_name: name,
+        pass_id: memberId  // Added for display
       }
     },
     pass: {
       id: memberId,
       attributes: {
-        holder_name: name,  // Added
-        display_name: name, // Added
+        holder_name: name,
+        display_name: name,
+        pass_id: memberId,  // Added for display
+        member_id: memberId, // Added for display
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
@@ -668,4 +675,22 @@ async function issueBadge() {
     const result = await response.json();
     const resultDiv = document.getElementById('result');
     
-    if
+    if (result.ok) {
+      resultDiv.className = 'success';
+      resultDiv.innerHTML = 'Pass created successfully!<br>Member ID: ' + memberId;
+    } else {
+      resultDiv.className = 'error';
+      resultDiv.innerHTML = 'Error: ' + (result.error || 'Unknown error');
+    }
+  } catch (error) {
+    document.getElementById('result').className = 'error';
+    document.getElementById('result').innerHTML = 'Network error: ' + error.message;
+  }
+}
+</script>
+`);
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
