@@ -4,7 +4,7 @@ import 'dotenv/config';
 // ENV vars
 const BADGE_API_KEY = process.env.BADGE_API_KEY;
 const BADGE_TEMPLATE_ID = process.env.BADGE_TEMPLATE_ID;
-const PORT = process.env.PORT || 3001; // Changed from 3000 to 3001
+const PORT = process.env.PORT || 3000; // Changed back to 3000 for Render compatibility
 
 // ======== VENDOR GEOFENCES ========
 const LOC = {
