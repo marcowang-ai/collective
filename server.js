@@ -542,6 +542,7 @@ async function redeem(vendorKey, overrideBenefit) {
     
     const j = await r.json();
     
+    // Replace the success handler:
     if (j && j.ok) {
       const remainingField = DEALS[vendorKey].benefits[benefitKey].passFieldRemaining;
       const remaining = j.balances[remainingField];
@@ -567,8 +568,8 @@ async function redeem(vendorKey, overrideBenefit) {
         '</div>';
     }
   } catch (error) {
-    out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
-      '<div class="err" style="font-size:24px;margin-bottom:15px">❌ ERROR</div>' +
+    out.innerHTML = '<div class="err" style="text-align:center;padding:20px 0;">' +
+      '<div style="font-size:24px;margin-bottom:15px">❌ ERROR</div>' +
       '<div>' + error.message + '</div>' +
       '</div>';
   }
@@ -634,115 +635,78 @@ function initForVendor(vendorKey, auto=false){
 </script>`);
 });
 
-// Replace the entire /issue endpoint with this simpler version:
+// Replace the entire /issue endpoint with this fixed version:
 
 app.get("/issue", (req, res) => {
-  res.type("html").send(`<!doctype html>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Issue Badge</title>
-
-<h2>Issue New Collective Pass</h2>
-<div>
-  <div>
-    <label>Full Name:</label><br>
-    <input type="text" id="name" placeholder="Enter member's full name">
-  </div>
-  <br>
-  <div>
-    <label>Email:</label><br>
-    <input type="email" id="email" placeholder="Enter member's email">
-  </div>
-  <br>
-  <div>
-    <label>Member ID:</label><br>
-    <input type="text" id="memberId" readonly>
-    <button onclick="generateId()">Generate New ID</button>
-  </div>
-  <br>
-  <button onclick="issueBadge()">Create Pass</button>
-  <div id="result"></div>
-</div>
-
-<script>
-let lastNum = parseInt(localStorage.getItem('lastMemberId') || '0');
-
-function padNumber(n) {
-  return String(n).padStart(4, '0');
-}
-
-function generateId() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  
-  lastNum++;
-  localStorage.setItem('lastMemberId', lastNum);
-  
-  const id = \`\${year}\${month}\${day}_FC\${padNumber(lastNum)}\`;
-  document.getElementById('memberId').value = id;
-  return id;
-}
-
-// Update the generateId function
-
-function generateId() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  
-  lastNum++;
-  localStorage.setItem('lastMemberId', lastNum);
-  
-  const id = \`\${year}\${month}\${day}_FC\${padNumber(lastNum)}\`;  // Fixed backtick
-  document.getElementById('memberId').value = id;
-  return id;
-}
-
-document.addEventListener('DOMContentLoaded', generateId);
-
-async function issueBadge() {
-  const name = document.getElementById('name').value.trim();
-  const email = document.getElementById('email').value.trim();
-  const memberId = document.getElementById('memberId').value.trim();
-  
-  if (!name || !email || !memberId) {
-    document.getElementById('result').innerHTML = 'Please fill in all fields';
-    return;
-  }
-  
-  try {
-    const response = await fetch('/issue-badge', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, memberId })
-    });
-    
-    const result = await response.json();
-    
-    // Update the issueBadge function's result HTML
-    if (result.ok) {
-      const downloadUrl = result.data.pass.downloadUrl;
-      document.getElementById('result').innerHTML = `
-        <div>✅ Pass created successfully!</div>
-        <div>
-          <a href="${downloadUrl}" target="_blank">Download Pass</a>
-          <a href="/s?pid=${memberId}">View Redemption Page</a>
-        </div>
-      `;  // Fixed backtick
-      
-      if (downloadUrl) {
-        window.location.href = downloadUrl;
-      }
-    } else {
-      document.getElementById('result').innerHTML = 'Error: ' + (result.error || 'Failed to create pass');
-    }
-  } catch (error) {
-    document.getElementById('result').innerHTML = 'Error: ' + error.message;
-  }
-}
-</script>`);
+  res.type("html").send('<!doctype html>' +
+    '<meta name="viewport" content="width=device-width, initial-scale=1" />' +
+    '<title>Issue Badge</title>' +
+    '<h2>Issue New Collective Pass</h2>' +
+    '<div>' +
+    '  <div>' +
+    '    <label>Full Name:</label><br>' +
+    '    <input type="text" id="name" placeholder="Enter member\'s full name">' +
+    '  </div>' +
+    '  <br>' +
+    '  <div>' +
+    '    <label>Email:</label><br>' +
+    '    <input type="email" id="email" placeholder="Enter member\'s email">' +
+    '  </div>' +
+    '  <br>' +
+    '  <div>' +
+    '    <label>Member ID:</label><br>' +
+    '    <input type="text" id="memberId" readonly>' +
+    '    <button onclick="generateId()">Generate New ID</button>' +
+    '  </div>' +
+    '  <br>' +
+    '  <button onclick="issueBadge()">Create Pass</button>' +
+    '  <div id="result"></div>' +
+    '</div>' +
+    '<script>' +
+    'var lastNum = parseInt(localStorage.getItem("lastMemberId") || "0");' +
+    'function padNumber(n) { return ("0000" + n).slice(-4); }' +
+    'function generateId() {' +
+    '  var now = new Date();' +
+    '  var year = now.getFullYear();' +
+    '  var month = ("0" + (now.getMonth() + 1)).slice(-2);' +
+    '  var day = ("0" + now.getDate()).slice(-2);' +
+    '  lastNum++;' +
+    '  localStorage.setItem("lastMemberId", lastNum);' +
+    '  var id = year + month + day + "_FC" + padNumber(lastNum);' +
+    '  document.getElementById("memberId").value = id;' +
+    '  return id;' +
+    '}' +
+    'document.addEventListener("DOMContentLoaded", generateId);' +
+    'async function issueBadge() {' +
+    '  var name = document.getElementById("name").value.trim();' +
+    '  var email = document.getElementById("email").value.trim();' +
+    '  var memberId = document.getElementById("memberId").value.trim();' +
+    '  var resultEl = document.getElementById("result");' +
+    '  if (!name || !email || !memberId) {' +
+    '    resultEl.innerHTML = "Please fill in all fields";' +
+    '    return;' +
+    '  }' +
+    '  try {' +
+    '    var response = await fetch("/issue-badge", {' +
+    '      method: "POST",' +
+    '      headers: { "Content-Type": "application/json" },' +
+    '      body: JSON.stringify({ name: name, email: email, memberId: memberId })' +
+    '    });' +
+    '    var result = await response.json();' +
+    '    if (result.ok) {' +
+    '      var downloadUrl = result.data.pass.downloadUrl;' +
+    '      resultEl.innerHTML = "<div>Pass created successfully!</div><div><a href=\\"" + downloadUrl + "\\" target=\\"_blank\\">Download Pass</a> <a href=\\"/s?pid=" + encodeURIComponent(memberId) + "\\">View Redemption Page</a></div>";' +
+    '      if (downloadUrl) {' +
+    '        window.location.href = downloadUrl;' +
+    '      }' +
+    '    } else {' +
+    '      resultEl.innerHTML = "Error: " + (result.error || "Failed to create pass");' +
+    '    }' +
+    '  } catch (error) {' +
+    '    resultEl.innerHTML = "Error: " + error.message;' +
+    '  }' +
+    '}' +
+    '</script>');
 });
 
 // Add before app.listen()
