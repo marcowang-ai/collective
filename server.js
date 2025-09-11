@@ -17,7 +17,7 @@ const LOC = {
   KIDS_CREATE:   { lat: 29.816755283414313, lng: -95.42137848171349, radius: 7 },
   TULUM:         { lat: 29.817021307396466, lng: -95.42145858820318, radius: 7 }
 };
-const ENFORCE_GEOFENCE = false; // set false to warn-only
+const ENFORCE_GEOFENCE = false; // Changed to false for testing
 
 // Default benefit per vendor (match your DEALS)
 const DEFAULT_BENEFIT = {
