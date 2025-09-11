@@ -876,7 +876,7 @@ function initForVendor(vendorKey, auto=false){
 </script>`);
 });
 
-// Replace the entire /issue endpoint with this fixed version:
+// Replace the /issue endpoint with this fixed version:
 
 app.get("/issue", (req, res) => {
   res.type("html").send('<!doctype html>' +
@@ -1031,8 +1031,9 @@ app.get("/test", (req, res) => {
   .form-group { margin: 15px 0; }
   label { display: block; margin-bottom: 5px; }
   input, select { width: 100%; padding: 8px; margin-bottom: 10px; }
-  button { padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 5px; }
+  button { padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 5px; margin: 5px 0; }
   #result { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+  .kids-create-options { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
 </style>
 
 <h2>Test Redemption</h2>
@@ -1043,7 +1044,7 @@ app.get("/test", (req, res) => {
 
 <div class="form-group">
   <label>Vendor:</label>
-  <select id="vendorKey">
+  <select id="vendorKey" onchange="handleVendorChange()">
     <option value="SONOMA">Sonoma</option>
     <option value="LITTLE_SISTER">Little Sister</option>
     <option value="FAT_CAT">Fat Cat</option>
@@ -1052,6 +1053,16 @@ app.get("/test", (req, res) => {
     <option value="KIDS_CREATE">Kids Create</option>
     <option value="TULUM">Tulum</option>
   </select>
+</div>
+
+<div id="kidsCreateOptions" class="kids-create-options" style="display:none">
+  <label>Kids Create Benefit:</label>
+  <div>
+    <label><input type="radio" name="kidsBenefit" value="FRIDAY_WORKSHOP" checked> Friday Workshop</label>
+  </div>
+  <div>
+    <label><input type="radio" name="kidsBenefit" value="RETAIL_15_1X"> 15% Off Retail</label>
+  </div>
 </div>
 
 <div class="form-group">
@@ -1065,13 +1076,43 @@ app.get("/test", (req, res) => {
 <pre id="result"></pre>
 
 <script>
+function handleVendorChange() {
+  const vendorKey = document.getElementById('vendorKey').value;
+  const kidsOptions = document.getElementById('kidsCreateOptions');
+  
+  if (vendorKey === 'KIDS_CREATE') {
+    kidsOptions.style.display = 'block';
+  } else {
+    kidsOptions.style.display = 'none';
+  }
+}
+
 async function testRedeem() {
   const passId = document.getElementById('passId').value;
   const vendorKey = document.getElementById('vendorKey').value;
   const skipGeo = document.getElementById('skipGeo').checked;
   
+  let benefitKey;
+  
+  // Handle Kids Create special case
+  if (vendorKey === 'KIDS_CREATE') {
+    const selectedBenefit = document.querySelector('input[name="kidsBenefit"]:checked');
+    benefitKey = selectedBenefit ? selectedBenefit.value : 'FRIDAY_WORKSHOP';
+  } else {
+    // Default benefits for other vendors
+    const defaultBenefits = {
+      SONOMA: "PERCENT_10",
+      LITTLE_SISTER: "CAFE_PERCENT_10",
+      FAT_CAT: "BOGO_SCOOP",
+      POLISH_BAR: "DAZZLE_DRY_UPGRADE",
+      THREADFARE: "PERCENT_10_1X",
+      TULUM: "PERCENT_10"
+    };
+    benefitKey = defaultBenefits[vendorKey];
+  }
+  
   try {
-    const response = await fetch('/redeem/' + vendorKey + '/PERCENT_10' + (skipGeo ? '?skipGeo=true' : ''), {
+    const response = await fetch('/redeem/' + vendorKey + '/' + benefitKey + (skipGeo ? '?skipGeo=true' : ''), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -1086,6 +1127,9 @@ async function testRedeem() {
     document.getElementById('result').textContent = 'Error: ' + error.message;
   }
 }
+
+// Initialize on page load
+handleVendorChange();
 </script>`);
 });
 
