@@ -914,7 +914,7 @@ async function redeem() {
   btn.textContent = 'Processing...';
 
   try {
-    const response = await fetch(\`/redeem/\${selectedVendor}/\${benefitKey}\`, {
+    const response = await fetch
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -1014,81 +1014,467 @@ async function redeem() {
 </script>`);
 });
 
-// Replace the /issue endpoint with this fixed version:
+// Replace the /issue endpoint with this modern, styled version:
 
 app.get("/issue", (req, res) => {
-  res.type("html").send('<!doctype html>' +
-    '<meta name="viewport" content="width=device-width, initial-scale=1" />' +
-    '<title>Issue Badge</title>' +
-    '<h2>Issue New Collective Pass</h2>' +
-    '<div>' +
-    '  <div>' +
-    '    <label>Full Name:</label><br>' +
-    '    <input type="text" id="name" placeholder="Enter member\'s full name">' +
-    '  </div>' +
-    '  <br>' +
-    '  <div>' +
-    '    <label>Email:</label><br>' +
-    '    <input type="email" id="email" placeholder="Enter member\'s email">' +
-    '  </div>' +
-    '  <br>' +
-    '  <div>' +
-    '    <label>Member ID:</label><br>' +
-    '    <input type="text" id="memberId" readonly>' +
-    '    <button onclick="generateId()">Generate New ID</button>' +
-    '  </div>' +
-    '  <br>' +
-    '  <button onclick="issueBadge()">Create Pass</button>' +
-    '  <div id="result"></div>' +
-    '</div>' +
-    '<script>' +
-    'var lastNum = parseInt(localStorage.getItem("lastMemberId") || "0");' +
-    'function padNumber(n) { return ("0000" + n).slice(-4); }' +
-    'function generateId() {' +
-    '  var now = new Date();' +
-    '  var year = now.getFullYear();' +
-    '  var month = ("0" + (now.getMonth() + 1)).slice(-2);' +
-    '  var day = ("0" + now.getDate()).slice(-2);' +
-    '  lastNum++;' +
-    '  localStorage.setItem("lastMemberId", lastNum);' +
-    '  var id = year + month + day + "_FC" + padNumber(lastNum);' +
-    '  document.getElementById("memberId").value = id;' +
-    '  return id;' +
-    '}' +
-    'document.addEventListener("DOMContentLoaded", generateId);' +
-    'async function issueBadge() {' +
-    '  var name = document.getElementById("name").value.trim();' +
-    '  var email = document.getElementById("email").value.trim();' +
-    '  var memberId = document.getElementById("memberId").value.trim();' +
-    '  var resultEl = document.getElementById("result");' +
-    '  if (!name || !email || !memberId) {' +
-    '    resultEl.innerHTML = "Please fill in all fields";' +
-    '    return;' +
-    '  }' +
-    '  try {' +
-    '    var response = await fetch("/issue-badge", {' +
-    '      method: "POST",' +
-    '      headers: { "Content-Type": "application/json" },' +
-    '      body: JSON.stringify({ name: name, email: email, memberId: memberId })' +
-    '    });' +
-    '    var result = await response.json();' +
-    '    if (result.ok) {' +
-    '      var downloadUrl = result.data.pass.downloadUrl;' +
-    '      resultEl.innerHTML = "<div>Pass created successfully!</div><div><a href=\\"" + downloadUrl + "\\" target=\\"_blank\\">Download Pass</a> <a href=\\"/s?pid=" + encodeURIComponent(memberId) + "\\">View Redemption Page</a></div>";' +
-    '      if (downloadUrl) {' +
-    '        window.location.href = downloadUrl;' +
-    '      }' +
-    '    } else {' +
-    '      resultEl.innerHTML = "Error: " + (result.error || "Failed to create pass");' +
-    '    }' +
-    '  } catch (error) {' +
-    '    resultEl.innerHTML = "Error: " + error.message;' +
-    '  }' +
-    '}' +
-    '</script>');
+  res.type("html").send(`<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Issue Collective Pass</title>
+<style>
+  :root {
+    --primary: #2d2d2a;
+    --secondary: #847577;
+    --success: #0a7b25;
+    --error: #b00020;
+    --warning: #f59e0b;
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --radius: 16px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .header p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .form-group {
+    margin-bottom: 24px;
+  }
+
+  .form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    display: block;
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 8px;
+    font-size: 16px;
+  }
+
+  input {
+    width: 100%;
+    padding: 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    background: var(--card-bg);
+  }
+
+  input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(45, 45, 42, 0.1);
+  }
+
+  input:read-only {
+    background: #f9fafb;
+    color: var(--text-muted);
+  }
+
+  .input-group {
+    display: flex;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .input-group input {
+    flex: 1;
+  }
+
+  .generate-btn {
+    padding: 16px 20px;
+    background: linear-gradient(135deg, var(--secondary) 0%, #a855f7 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .generate-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(134, 87, 119, 0.3);
+  }
+
+  .create-btn {
+    width: 100%;
+    padding: 18px 24px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+  }
+
+  .create-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(45, 45, 42, 0.3);
+  }
+
+  .create-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .result {
+    text-align: center;
+    padding: 24px;
+    border-radius: 12px;
+    margin-top: 20px;
+  }
+
+  .result.success {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid var(--success);
+  }
+
+  .result.error {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid var(--error);
+  }
+
+  .result-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .result-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .result.success .result-title { color: var(--success); }
+  .result.error .result-title { color: var(--error); }
+
+  .result-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  .action-btn {
+    padding: 12px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .action-btn.primary {
+    background: var(--primary);
+    color: white;
+  }
+
+  .action-btn.secondary {
+    background: var(--card-bg);
+    color: var(--primary);
+    border: 2px solid var(--border);
+  }
+
+  .action-btn:hover {
+    transform: translateY(-2px);
+  }
+
+  .member-id-display {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    text-align: center;
+  }
+
+  .member-id-label {
+    font-size: 14px;
+    opacity: 0.9;
+    margin-bottom: 4px;
+  }
+
+  .member-id-value {
+    font-size: 18px;
+    font-weight: 700;
+    font-family: monospace;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .loading { animation: pulse 2s infinite; }
+
+  .info-card {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border: 1px solid #3b82f6;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+
+  .info-card h3 {
+    margin: 0 0 8px 0;
+    color: #1e40af;
+    font-size: 16px;
+  }
+
+  .info-card p {
+    margin: 0;
+    color: #1e40af;
+    font-size: 14px;
+  }
+</style>
+
+<div class="container">
+  <div class="header">
+    <h1>🎫 Issue Collective Pass</h1>
+    <p>Create a new membership pass with exclusive benefits</p>
+  </div>
+
+  <div class="info-card">
+    <h3>✨ Pass Benefits Include:</h3>
+    <p>10% off at Sonoma & Threadfare • BOGO scoops at Fat Cat • Free Friday workshops at Kids Create • Dazzle Dry upgrades at Polish Bar • 10% off at Little Sister café & Tulum Spa</p>
+  </div>
+
+  <div class="card">
+    <div class="form-group">
+      <label for="name">Full Name</label>
+      <input type="text" id="name" placeholder="Enter member's full name" autocomplete="name">
+    </div>
+
+    <div class="form-group">
+      <label for="email">Email Address</label>
+      <input type="email" id="email" placeholder="Enter member's email" autocomplete="email">
+    </div>
+
+    <div class="form-group">
+      <label for="memberId">Member ID</label>
+      <div class="input-group">
+        <input type="text" id="memberId" readonly placeholder="Auto-generated">
+        <button type="button" class="generate-btn" onclick="generateId()">🎲 Generate</button>
+      </div>
+    </div>
+
+    <button type="button" class="create-btn" onclick="issueBadge()">
+      Create Pass
+    </button>
+  </div>
+
+  <div id="result" style="display: none;">
+    <!-- Results will be shown here -->
+  </div>
+</div>
+
+<script>
+let lastNum = parseInt(localStorage.getItem('lastMemberId') || '0');
+
+function padNumber(n) {
+  return ('0000' + n).slice(-4);
+}
+
+function generateId() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = ('0' + (now.getMonth() + 1)).slice(-2);
+  const day = ('0' + now.getDate()).slice(-2);
+  
+  lastNum++;
+  localStorage.setItem('lastMemberId', lastNum);
+  
+  const id = year + month + day + '_FC' + padNumber(lastNum);
+  document.getElementById('memberId').value = id;
+  return id;
+}
+
+// Auto-generate ID on page load
+document.addEventListener('DOMContentLoaded', generateId);
+
+async function issueBadge() {
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const memberId = document.getElementById('memberId').value.trim();
+  const resultEl = document.getElementById('result');
+  const btn = document.querySelector('.create-btn');
+
+  // Validation
+  if (!name || !email || !memberId) {
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = \`
+      <div class="result error">
+        <div class="result-icon">⚠️</div>
+        <div class="result-title">Missing Information</div>
+        <div>Please fill in all fields to create the pass</div>
+      </div>
+    \`;
+    return;
+  }
+
+  // Email validation
+  const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+  if (!emailRegex.test(email)) {
+    resultEl.style.display = 'block';
+    resultEl.innerHTML = \`
+      <div class="result error">
+        <div class="result-icon">📧</div>
+        <div class="result-title">Invalid Email</div>
+        <div>Please enter a valid email address</div>
+      </div>
+    \`;
+    return;
+  }
+
+  // Show loading state
+  btn.disabled = true;
+  btn.textContent = 'Creating Pass...';
+  resultEl.style.display = 'block';
+  resultEl.innerHTML = \`
+    <div class="result">
+      <div class="result-icon">⏳</div>
+      <div class="result-title">Creating Your Pass</div>
+      <div>Please wait while we generate your Collective Pass...</div>
+    </div>
+  \`;
+
+  try {
+    const response = await fetch('/issue-badge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, memberId })
+    });
+
+    const result = await response.json();
+
+    if (result.ok && result.data?.pass?.downloadUrl) {
+      const downloadUrl = result.data.pass.downloadUrl;
+      
+      resultEl.innerHTML = \`
+        <div class="result success">
+          <div class="result-icon">✅</div>
+          <div class="result-title">Pass Created Successfully!</div>
+          <div style="margin-bottom: 16px;">
+            Your Collective Pass has been created and is ready to use.
+          </div>
+          <div class="member-id-display">
+            <div class="member-id-label">Member ID</div>
+            <div class="member-id-value">\${memberId}</div>
+          </div>
+          <div class="result-actions">
+            <a href="\${downloadUrl}" target="_blank" class="action-btn primary">
+              📱 Download Pass
+            </a>
+            <a href="/s?pid=\${encodeURIComponent(memberId)}" class="action-btn secondary">
+              🎯 View Redemption Page
+            </a>
+          </div>
+          <div style="margin-top: 16px; color: var(--text-muted); font-size: 14px;">
+            Pass will download automatically in 2 seconds...
+          </div>
+        </div>
+      \`;
+
+      // Auto-download after 2 seconds
+      setTimeout(() => {
+        window.location.href = downloadUrl;
+      }, 2000);
+
+    } else {
+      resultEl.innerHTML = \`
+        <div class="result error">
+          <div class="result-icon">❌</div>
+          <div class="result-title">Creation Failed</div>
+          <div>\${result.error || 'Unable to create pass. Please try again.'}</div>
+          <div class="result-actions">
+            <button class="action-btn secondary" onclick="location.reload()">
+              🔄 Try Again
+            </button>
+          </div>
+        </div>
+      \`;
+    }
+  } catch (error) {
+    resultEl.innerHTML = \`
+      <div class="result error">
+        <div class="result-icon">⚠️</div>
+        <div class="result-title">Connection Error</div>
+        <div>Unable to connect to the server. Please check your internet connection and try again.</div>
+        <div class="result-actions">
+          <button class="action-btn secondary" onclick="location.reload()">
+            🔄 Try Again
+          </button>
+        </div>
+      </div>
+    \`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Create Pass';
+    resultEl.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+</script>`);
 });
 
 // Add before app.listen()
+
+app.get("/", (req, res) => {
+  res.redirect("/issue");
+});
 
 app.get("/redeem-test", (req, res) => {
   res.type("html").send(`<!doctype html>
