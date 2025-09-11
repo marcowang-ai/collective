@@ -136,7 +136,7 @@ function withinFence(geo, center){
 const app = express();
 app.use(express.json());
 app.use(cors({
-  origin: ['https://flowe.studio', 'https://flowe-collective.onrender.com'],
+  origin: '*',  // Allow all origins during testing
   methods: ['GET', 'POST'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -895,6 +895,27 @@ async function testRedeem() {
   }
 }
 </script>`);
+});
+
+// Add before app.listen()
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+  res.status(500).json({
+    ok: false,
+    error: 'Internal Server Error',
+    details: err.message
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    ok: false,
+    error: 'Not Found',
+    path: req.path
+  });
 });
 
 app.listen(PORT, () => {
