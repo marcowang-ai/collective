@@ -30,13 +30,17 @@ const DEFAULT_BENEFIT = {
   TULUM: "PERCENT_10"
 };
 
+// Update the DEALS object with detailed descriptions:
+
 const DEALS = {
   SONOMA: {
     key: "SONOMA",
     label: "Sonoma",
+    description: "Wine bar and bottle shop specializing in natural wines",
     benefits: {
       PERCENT_10: {
         label: "10% Off Purchase",
+        description: "Get 10% off your total purchase (excludes bottle purchases)",
         maxPerMonth: 1,
         passFieldRemaining: "sonoma_remaining",
         conditions: { excludeBottlePurchases: true }
@@ -46,9 +50,11 @@ const DEALS = {
   LITTLE_SISTER: {
     key: "LITTLE_SISTER",
     label: "Little Sister",
+    description: "Coffee shop and café with specialty drinks and light bites",
     benefits: {
       CAFE_PERCENT_10: {
-        label: "10% Off Café",
+        label: "10% Off Café Items",
+        description: "Get 10% off all café items including coffee, pastries, and light meals",
         maxPerMonth: 1,
         passFieldRemaining: "littlesister_remaining",
         conditions: { purchaseScope: "CAFE" }
@@ -58,9 +64,11 @@ const DEALS = {
   FAT_CAT: {
     key: "FAT_CAT",
     label: "Fat Cat Creamery",
+    description: "Artisanal ice cream shop with unique flavors",
     benefits: {
       BOGO_SCOOP: {
         label: "Buy 1 Get 1 Scoop",
+        description: "Buy one scoop and get a second scoop free (requires at least one paid scoop)",
         maxPerMonth: 1,
         passFieldRemaining: "fatcat_remaining",
         conditions: { requiresPaidItem: "scoop" }
@@ -70,9 +78,11 @@ const DEALS = {
   POLISH_BAR: {
     key: "POLISH_BAR",
     label: "Polish Bar",
+    description: "Full-service nail salon with manicures and pedicures",
     benefits: {
       DAZZLE_DRY_UPGRADE: {
         label: "Free Dazzle Dry Upgrade",
+        description: "Get a complimentary Dazzle Dry upgrade with any manicure service",
         maxPerMonth: 1,
         passFieldRemaining: "polishbar_remaining"
       }
@@ -81,9 +91,11 @@ const DEALS = {
   THREADFARE: {
     key: "THREADFARE",
     label: "Threadfare",
+    description: "Boutique clothing store featuring curated fashion and accessories",
     benefits: {
       PERCENT_10_1X: {
-        label: "10% Off (Once)",
+        label: "10% Off Purchase",
+        description: "Get 10% off your entire purchase (one-time use per month)",
         maxPerMonth: 1,
         passFieldRemaining: "threadfare_remaining"
       }
@@ -92,15 +104,18 @@ const DEALS = {
   KIDS_CREATE: {
     key: "KIDS_CREATE",
     label: "Kids Create",
+    description: "Creative studio offering art classes and retail supplies for children",
     benefits: {
       FRIDAY_WORKSHOP: {
-        label: "Friday Workshop",
+        label: "Free Friday Workshop",
+        description: "Join a complimentary Friday art workshop for kids (ages 3-12, Fridays only)",
         maxPerMonth: 1,
         passFieldRemaining: "kidscreate_workshop_remaining",
         conditions: { weekday: 5 }  // 5 = Friday
       },
       RETAIL_15_1X: {
-        label: "15% Off Retail",
+        label: "15% Off Art Supplies",
+        description: "Get 15% off all retail art supplies and craft materials",
         maxPerMonth: 1,
         passFieldRemaining: "kidscreate_retail_remaining"
       }
@@ -109,9 +124,11 @@ const DEALS = {
   TULUM: {
     key: "TULUM",
     label: "Tulum Spa",
+    description: "Wellness spa offering massages, facials, and beauty treatments",
     benefits: {
       PERCENT_10: {
-        label: "10% Off Service/Retail",
+        label: "10% Off Services & Retail",
+        description: "Get 10% off all spa services and retail beauty products",
         maxPerMonth: 1,
         passFieldRemaining: "tulum_remaining"
       }
@@ -479,10 +496,19 @@ function renderControls(vendorKey){
     inner += '<span class="pill">Scope: Café</span>';
   }
   if (vendorKey === 'KIDS_CREATE'){
-    inner += '<div style="display:flex;flex-direction:column;gap:10px;width:100%">' +
-             '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')">Use Friday Workshop</button>' +
-             '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')">Use 15% Off Retail</button>' +
-             '</div>';
+    const workshopBenefit = DEALS[vendorKey].benefits.FRIDAY_WORKSHOP;
+    const retailBenefit = DEALS[vendorKey].benefits.RETAIL_15_1X;
+    
+    inner += '<div style="display:flex;flex-direction:column;gap:12px;width:100%">' +
+      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')" style="text-align:left;padding:12px">' +
+      '<div style="font-weight:600;margin-bottom:4px">' + workshopBenefit.label + '</div>' +
+      '<div style="font-size:0.9em;opacity:0.9">' + workshopBenefit.description + '</div>' +
+      '</button>' +
+      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')" style="text-align:left;padding:12px">' +
+      '<div style="font-weight:600;margin-bottom:4px">' + retailBenefit.label + '</div>' +
+      '<div style="font-size:0.9em;opacity:0.9">' + retailBenefit.description + '</div>' +
+      '</button>' +
+      '</div>';
     return box.innerHTML = inner;
   }
   inner += '</div><div style="margin-top:10px" class="row">' +
@@ -494,19 +520,18 @@ function renderControls(vendorKey){
 
 function renderShopChoices(){
   const box = $('#controls'); box.style.display='block';
-  let inner = '<h3 style="margin-top:0">Pick the shop</h3><div class="row" style="gap:8px">';
-  const labels = {
-    SONOMA: "Sonoma - 10% off purchase",
-    LITTLE_SISTER: "Little Sister - 10% off",
-    FAT_CAT: "Fat Cat Creamery - Buy 1 Get 1 Scoop",
-    POLISH_BAR: "Polish Bar - Free Dazzle Dry Upgrade",
-    THREADFARE: "Threadfare - 10% Off",
-    KIDS_CREATE: "KidCreate - One Free Friday Workshop / 15% off retail",
-    TULUM: "Tulum - 10% off service/retail"
-  };
-  for (const k of Object.keys(LOC)){
-    inner += '<button data-k="'+k+'">'+labels[k]+'</button>';
+  let inner = '<h3 style="margin-top:0">Pick the shop</h3><div style="display:flex;flex-direction:column;gap:12px">';
+  
+  for (const [k, deal] of Object.entries(DEALS)){
+    const defaultBenefit = deal.benefits[DEFAULT_BENEFIT[k]];
+    inner += '<button data-k="' + k + '" style="text-align:left;padding:12px;border:1px solid var(--bd);border-radius:8px;background:white;cursor:pointer">' +
+      '<div style="font-weight:600;margin-bottom:4px">' + deal.label + '</div>' +
+      '<div style="font-size:0.9em;color:var(--muted);margin-bottom:6px">' + deal.description + '</div>' +
+      '<div style="font-size:0.85em;color:var(--ok);font-weight:500">' + defaultBenefit.label + '</div>' +
+      '<div style="font-size:0.8em;color:var(--muted)">' + defaultBenefit.description + '</div>' +
+      '</button>';
   }
+  
   inner += '</div>';
   box.innerHTML = inner;
   box.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => initForVendor(b.dataset.k));
@@ -719,10 +744,19 @@ function renderControls(vendorKey){
     inner += '<span class="pill">Scope: Café</span>';
   }
   if (vendorKey === 'KIDS_CREATE'){
-    inner += '<div style="display:flex;flex-direction:column;gap:10px;width:100%">' +
-             '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')">Use Friday Workshop</button>' +
-             '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')">Use 15% Off Retail</button>' +
-             '</div>';
+    const workshopBenefit = DEALS[vendorKey].benefits.FRIDAY_WORKSHOP;
+    const retailBenefit = DEALS[vendorKey].benefits.RETAIL_15_1X;
+    
+    inner += '<div style="display:flex;flex-direction:column;gap:12px;width:100%">' +
+      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')" style="text-align:left;padding:12px">' +
+      '<div style="font-weight:600;margin-bottom:4px">' + workshopBenefit.label + '</div>' +
+      '<div style="font-size:0.9em;opacity:0.9">' + workshopBenefit.description + '</div>' +
+      '</button>' +
+      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')" style="text-align:left;padding:12px">' +
+      '<div style="font-weight:600;margin-bottom:4px">' + retailBenefit.label + '</div>' +
+      '<div style="font-size:0.9em;opacity:0.9">' + retailBenefit.description + '</div>' +
+      '</button>' +
+      '</div>';
     return box.innerHTML = inner;
   }
   inner += '</div><div style="margin-top:10px" class="row">' +
@@ -734,19 +768,18 @@ function renderControls(vendorKey){
 
 function renderShopChoices(){
   const box = $('#controls'); box.style.display='block';
-  let inner = '<h3 style="margin-top:0">Pick the shop</h3><div class="row" style="gap:8px">';
-  const labels = {
-    SONOMA: "Sonoma - 10% off purchase",
-    LITTLE_SISTER: "Little Sister - 10% off",
-    FAT_CAT: "Fat Cat Creamery - Buy 1 Get 1 Scoop",
-    POLISH_BAR: "Polish Bar - Free Dazzle Dry Upgrade",
-    THREADFARE: "Threadfare - 10% Off",
-    KIDS_CREATE: "KidCreate - One Free Friday Workshop / 15% off retail",
-    TULUM: "Tulum - 10% off service/retail"
-  };
-  for (const k of Object.keys(LOC)){
-    inner += '<button data-k="'+k+'">'+labels[k]+'</button>';
+  let inner = '<h3 style="margin-top:0">Pick the shop</h3><div style="display:flex;flex-direction:column;gap:12px">';
+  
+  for (const [k, deal] of Object.entries(DEALS)){
+    const defaultBenefit = deal.benefits[DEFAULT_BENEFIT[k]];
+    inner += '<button data-k="' + k + '" style="text-align:left;padding:12px;border:1px solid var(--bd);border-radius:8px;background:white;cursor:pointer">' +
+      '<div style="font-weight:600;margin-bottom:4px">' + deal.label + '</div>' +
+      '<div style="font-size:0.9em;color:var(--muted);margin-bottom:6px">' + deal.description + '</div>' +
+      '<div style="font-size:0.85em;color:var(--ok);font-weight:500">' + defaultBenefit.label + '</div>' +
+      '<div style="font-size:0.8em;color:var(--muted)">' + defaultBenefit.description + '</div>' +
+      '</button>';
   }
+  
   inner += '</div>';
   box.innerHTML = inner;
   box.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => initForVendor(b.dataset.k));
@@ -1045,23 +1078,31 @@ app.get("/test", (req, res) => {
 <div class="form-group">
   <label>Vendor:</label>
   <select id="vendorKey" onchange="handleVendorChange()">
-    <option value="SONOMA">Sonoma</option>
-    <option value="LITTLE_SISTER">Little Sister</option>
-    <option value="FAT_CAT">Fat Cat</option>
-    <option value="POLISH_BAR">Polish Bar</option>
-    <option value="THREADFARE">Threadfare</option>
-    <option value="KIDS_CREATE">Kids Create</option>
-    <option value="TULUM">Tulum</option>
+    <option value="SONOMA">Sonoma - Wine bar (10% off purchase)</option>
+    <option value="LITTLE_SISTER">Little Sister - Coffee shop (10% off café)</option>
+    <option value="FAT_CAT">Fat Cat - Ice cream (Buy 1 Get 1 scoop)</option>
+    <option value="POLISH_BAR">Polish Bar - Nail salon (Free Dazzle Dry upgrade)</option>
+    <option value="THREADFARE">Threadfare - Boutique (10% off purchase)</option>
+    <option value="KIDS_CREATE">Kids Create - Art studio (Workshop or 15% off supplies)</option>
+    <option value="TULUM">Tulum - Spa (10% off services & retail)</option>
   </select>
 </div>
 
 <div id="kidsCreateOptions" class="kids-create-options" style="display:none">
   <label>Kids Create Benefit:</label>
   <div>
-    <label><input type="radio" name="kidsBenefit" value="FRIDAY_WORKSHOP" checked> Friday Workshop</label>
+    <label>
+      <input type="radio" name="kidsBenefit" value="FRIDAY_WORKSHOP" checked> 
+      <strong>Free Friday Workshop</strong><br>
+      <small>Complimentary Friday art workshop for kids (ages 3-12, Fridays only)</small>
+    </label>
   </div>
   <div>
-    <label><input type="radio" name="kidsBenefit" value="RETAIL_15_1X"> 15% Off Retail</label>
+    <label>
+      <input type="radio" name="kidsBenefit" value="RETAIL_15_1X"> 
+      <strong>15% Off Art Supplies</strong><br>
+      <small>Get 15% off all retail art supplies and craft materials</small>
+    </label>
   </div>
 </div>
 
