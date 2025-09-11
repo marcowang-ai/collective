@@ -418,28 +418,311 @@ app.get("/debug-pid", (req, res) => {
 app.get("/s", (req, res) => {
   res.type("html").send(`<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Collective — Redeem</title>
+<title>Collective Pass — Redeem</title>
 <style>
-  :root{--fg:#111;--muted:#666;--ok:#0a7b25;--err:#b00020;--bd:#e5e7eb}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:20px;color:var(--fg)}
-  .card{border:1px solid var(--bd);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  button{padding:10px 14px;border-radius:10px;border:1px solid var(--bd);background:#fff;cursor:pointer}
-  button.primary{background:#111;color:#fff;border-color:#111}
-  .ok{color:var(--ok);font-weight:600} .err{color:var(--err);font-weight:600}
-  .muted{color:var(--muted)} .pill{background:#f6f7f9;border:1px solid var(--bd);padding:2px 8px;border-radius:999px}
-  label{display:flex;gap:8px;align-items:center}
-  input[type=checkbox]{width:18px;height:18px}
+  :root {
+    --primary: #2d2d2a;
+    --secondary: #847577;
+    --success: #0a7b25;
+    --error: #b00020;
+    --warning: #f59e0b;
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --radius: 16px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+
+  * { box-sizing: border-box; }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  .container {
+    max-width: 480px;
+    margin: 0 auto;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .header h1 {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+
+  .header p {
+    margin: 8px 0 0;
+    color: var(--text-muted);
+    font-size: 16px;
+  }
+
+  .card {
+    background: var(--card-bg);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+  }
+
+  .pass-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 12px;
+    color: white;
+    margin-bottom: 24px;
+  }
+
+  .pass-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+  }
+
+  .shop-grid {
+    display: grid;
+    gap: 12px;
+  }
+
+  .shop-card {
+    padding: 20px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    background: var(--card-bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+  }
+
+  .shop-card:hover {
+    border-color: var(--primary);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow);
+  }
+
+  .shop-card.detected {
+    border-color: var(--success);
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+  }
+
+  .shop-card.detected::before {
+    content: "📍 ";
+    color: var(--success);
+    font-weight: bold;
+  }
+
+  .shop-name {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--primary);
+  }
+
+  .shop-description {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .shop-benefit {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--success);
+    margin-bottom: 4px;
+  }
+
+  .shop-benefit-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  .controls {
+    text-align: center;
+  }
+
+  .kids-options {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .option-card {
+    padding: 16px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--card-bg);
+  }
+
+  .option-card:hover {
+    border-color: var(--primary);
+  }
+
+  .option-card.selected {
+    border-color: var(--success);
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  }
+
+  .option-title {
+    font-weight: 600;
+    color: var(--primary);
+    margin-bottom: 4px;
+  }
+
+  .option-desc {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+
+  .redeem-btn {
+    width: 100%;
+    padding: 16px 24px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 16px;
+  }
+
+  .redeem-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(45, 45, 42, 0.3);
+  }
+
+  .redeem-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  .result {
+    text-align: center;
+    padding: 24px;
+    border-radius: 12px;
+    margin-top: 20px;
+  }
+
+  .result.success {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    border: 2px solid var(--success);
+  }
+
+  .result.error {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border: 2px solid var(--error);
+  }
+
+  .result-icon {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  .result-title {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+
+  .result.success .result-title { color: var(--success); }
+  .result.error .result-title { color: var(--error); }
+
+  .status-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .status-loading {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .status-success {
+    background: #d1fae5;
+    color: var(--success);
+  }
+
+  .location-hint {
+    text-align: center;
+    padding: 12px;
+    background: #f3f4f6;
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  .loading { animation: pulse 2s infinite; }
 </style>
 
-<h2>Collective — Redeem</h2>
-<div class="card">
-  <div id="pidLine" class="muted">Reading pass…</div>
-  <div id="where" class="muted">Finding shop…</div>
-</div>
+<div class="container">
+  <div class="header">
+    <h1>🎫 Collective Pass</h1>
+    <p>Choose your shop to redeem benefits</p>
+  </div>
 
-<div id="controls" class="card" style="display:none"></div>
-<div id="result" class="card" style="display:none"></div>
+  <div class="pass-info" id="passInfo">
+    <div class="pass-icon">🎯</div>
+    <div>
+      <div style="font-weight: 600; font-size: 16px;">Pass ID</div>
+      <div id="passId" class="loading">Loading...</div>
+    </div>
+  </div>
+
+  <div id="locationStatus" class="location-hint" style="display: none;">
+    <span class="status-indicator status-loading">
+      📍 Getting your location...
+    </span>
+  </div>
+
+  <div class="card">
+    <div id="shopSelection" class="shop-grid">
+      <!-- Shops will be populated here -->
+    </div>
+  </div>
+
+  <div id="controls" class="card" style="display: none;">
+    <!-- Controls will be populated here -->
+  </div>
+
+  <div id="result" style="display: none;">
+    <!-- Results will be shown here -->
+  </div>
+</div>
 
 <script>
 // ---- Config injected from server ----
@@ -450,9 +733,9 @@ const DEALS = ` + JSON.stringify(DEALS) + `;
 // ---- Utils ----
 const q = new URL(location.href).searchParams;
 const PID = decodeURIComponent((q.get('pid') || '').trim());
-console.log('Received PID:', PID);
-const $ = sel => document.querySelector(sel);
-const metersFmt = n => Math.round(n) + ' m';
+let selectedVendor = null;
+let selectedKidsBenefit = 'FRIDAY_WORKSHOP';
+let userLocation = null;
 
 function distMeters(aLat,aLng,bLat,bLng){
   const R=6371000, toRad=x=>x*Math.PI/180;
@@ -462,449 +745,271 @@ function distMeters(aLat,aLng,bLat,bLng){
   return 2*R*Math.asin(Math.sqrt(a));
 }
 
-function pickByGPS(lat,lng,acc){
-  let best=null, bestScore=1e12;
-  for (const [k,v] of Object.entries(LOC)){
-    const d = distMeters(lat,lng,v.lat,v.lng) - (acc||0);
-    const score = d <= v.radius ? d : 1e11 + d;
-    if (score < bestScore){ best={vendorKey:k, d, radius:v.radius, acc}; bestScore=score; }
-  }
-  return best;
-}
-
 async function getGeo(){
-  return await new Promise(res=>{
+  return new Promise(resolve => {
+    if (!navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition(
-      p=>res({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),
-      _=>res(null),
-      {enableHighAccuracy:true,timeout:8000,maximumAge:0}
+      p => resolve({lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy}),
+      () => resolve(null),
+      {enableHighAccuracy: true, timeout: 8000, maximumAge: 30000}
     );
   });
 }
 
-function renderControls(vendorKey){
-  const box = $('#controls'); box.style.display='block';
-  const title = vendorKey.replaceAll('_',' ');
-  let inner = '<h3 style="margin-top:0">'+title+'</h3><div class="row" style="gap:14px">';
-  if (vendorKey === 'SONOMA'){
-    inner += '<label><input type="checkbox" id="hasBottle"> Includes bottle(s)</label>';
+function findNearestShop(lat, lng) {
+  let nearest = null;
+  let minDistance = Infinity;
+  
+  for (const [key, loc] of Object.entries(LOC)) {
+    const distance = distMeters(lat, lng, loc.lat, loc.lng);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearest = { key, distance, withinRadius: distance <= loc.radius };
+    }
   }
-  if (vendorKey === 'FAT_CAT'){
-    inner += '<label><input type="checkbox" id="paidScoop" checked> Paid scoop in order</label>';
-  }
-  if (vendorKey === 'LITTLE_SISTER'){
-    inner += '<span class="pill">Scope: Café</span>';
-  }
-  if (vendorKey === 'KIDS_CREATE'){
-    const workshopBenefit = DEALS[vendorKey].benefits.FRIDAY_WORKSHOP;
-    const retailBenefit = DEALS[vendorKey].benefits.RETAIL_15_1X;
+  
+  return nearest;
+}
+
+function renderShops() {
+  const container = document.getElementById('shopSelection');
+  let html = '';
+  
+  for (const [key, deal] of Object.entries(DEALS)) {
+    const benefit = deal.benefits[DEFAULT_BENEFIT[key]];
+    const isDetected = userLocation && findNearestShop(userLocation.lat, userLocation.lng)?.key === key;
     
-    inner += '<div style="display:flex;flex-direction:column;gap:12px;width:100%">' +
-      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')" style="text-align:left;padding:12px">' +
-      '<div style="font-weight:600;margin-bottom:4px">' + workshopBenefit.label + '</div>' +
-      '<div style="font-size:0.9em;opacity:0.9">' + workshopBenefit.description + '</div>' +
-      '</button>' +
-      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')" style="text-align:left;padding:12px">' +
-      '<div style="font-weight:600;margin-bottom:4px">' + retailBenefit.label + '</div>' +
-      '<div style="font-size:0.9em;opacity:0.9">' + retailBenefit.description + '</div>' +
-      '</button>' +
-      '</div>';
-    return box.innerHTML = inner;
-  }
-  inner += '</div><div style="margin-top:10px" class="row">' +
-           '<button class="primary" id="redeemBtn">Redeem now</button>' +
-           '<button id="chooseShop">Change shop</button>' +
-           '</div>';
-  box.innerHTML = inner;
-}
-
-function renderShopChoices(){
-  const box = $('#controls'); box.style.display='block';
-  let inner = '<h3 style="margin-top:0">Pick the shop</h3><div style="display:flex;flex-direction:column;gap:12px">';
-  
-  for (const [k, deal] of Object.entries(DEALS)){
-    const defaultBenefit = deal.benefits[DEFAULT_BENEFIT[k]];
-    inner += '<button data-k="' + k + '" style="text-align:left;padding:12px;border:1px solid var(--bd);border-radius:8px;background:white;cursor:pointer">' +
-      '<div style="font-weight:600;margin-bottom:4px">' + deal.label + '</div>' +
-      '<div style="font-size:0.9em;color:var(--muted);margin-bottom:6px">' + deal.description + '</div>' +
-      '<div style="font-size:0.85em;color:var(--ok);font-weight:500">' + defaultBenefit.label + '</div>' +
-      '<div style="font-size:0.8em;color:var(--muted)">' + defaultBenefit.description + '</div>' +
-      '</button>';
+    html += \`
+      <div class="shop-card \${isDetected ? 'detected' : ''}" onclick="selectShop('\${key}')">
+        <div class="shop-name">\${deal.label}</div>
+        <div class="shop-description">\${deal.description}</div>
+        <div class="shop-benefit">\${benefit.label}</div>
+        <div class="shop-benefit-desc">\${benefit.description}</div>
+      </div>
+    \`;
   }
   
-  inner += '</div>';
-  box.innerHTML = inner;
-  box.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => initForVendor(b.dataset.k));
+  container.innerHTML = html;
 }
 
-async function redeem(vendorKey, overrideBenefit) {
-  const benefitKey = overrideBenefit || DEFAULT_BENEFIT[vendorKey];
-  const geo = await getGeo();
-  const body = { passId: PID, geo };
+function selectShop(vendorKey) {
+  selectedVendor = vendorKey;
+  const deal = DEALS[vendorKey];
+  
+  document.getElementById('controls').style.display = 'block';
+  
+  if (vendorKey === 'KIDS_CREATE') {
+    renderKidsCreateControls();
+  } else {
+    renderStandardControls(vendorKey);
+  }
+  
+  // Scroll to controls
+  document.getElementById('controls').scrollIntoView({ behavior: 'smooth' });
+}
 
-  // Show loading state
-  const out = $('#result');
-  out.style.display = 'block';
-  out.innerHTML = '<div class="muted">Processing redemption...</div>';
+function renderKidsCreateControls() {
+  const workshopBenefit = DEALS.KIDS_CREATE.benefits.FRIDAY_WORKSHOP;
+  const retailBenefit = DEALS.KIDS_CREATE.benefits.RETAIL_15_1X;
+  
+  document.getElementById('controls').innerHTML = \`
+    <h3 style="margin-top: 0; text-align: center; color: var(--primary);">Kids Create Options</h3>
+    <div class="kids-options">
+      <div class="option-card \${selectedKidsBenefit === 'FRIDAY_WORKSHOP' ? 'selected' : ''}" 
+           onclick="selectKidsBenefit('FRIDAY_WORKSHOP')">
+        <div class="option-title">\${workshopBenefit.label}</div>
+        <div class="option-desc">\${workshopBenefit.description}</div>
+      </div>
+      <div class="option-card \${selectedKidsBenefit === 'RETAIL_15_1X' ? 'selected' : ''}" 
+           onclick="selectKidsBenefit('RETAIL_15_1X')">
+        <div class="option-title">\${retailBenefit.label}</div>
+        <div class="option-desc">\${retailBenefit.description}</div>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="redeem-btn" onclick="redeem()">
+        Redeem \${selectedKidsBenefit === 'FRIDAY_WORKSHOP' ? workshopBenefit.label : retailBenefit.label}
+      </button>
+    </div>
+  \`;
+}
 
-  // Add vendor-specific data
+function renderStandardControls(vendorKey) {
+  const deal = DEALS[vendorKey];
+  const benefit = deal.benefits[DEFAULT_BENEFIT[vendorKey]];
+  
+  let extraControls = '';
+  
   if (vendorKey === 'SONOMA') {
-    body.cart = { hasBottle: $('#hasBottle')?.checked || false };
+    extraControls = \`
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="hasBottle" style="width: 18px; height: 18px;">
+          <span>Purchase includes bottle(s)</span>
+        </label>
+      </div>
+    \`;
+  } else if (vendorKey === 'FAT_CAT') {
+    extraControls = \`
+      <div style="margin-bottom: 16px;">
+        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+          <input type="checkbox" id="paidScoop" checked style="width: 18px; height: 18px;">
+          <span>Order includes paid scoop</span>
+        </label>
+      </div>
+    \`;
   }
-  if (vendorKey === 'FAT_CAT') {
-    const paid = $('#paidScoop')?.checked ? 1 : 0;
-    body.cart = { paidItems: { scoop: paid } };
+  
+  document.getElementById('controls').innerHTML = \`
+    <h3 style="margin-top: 0; text-align: center; color: var(--primary);">\${deal.label}</h3>
+    <div style="text-align: center; margin-bottom: 20px;">
+      <div class="shop-benefit">\${benefit.label}</div>
+      <div class="shop-benefit-desc">\${benefit.description}</div>
+    </div>
+    \${extraControls}
+    <div class="controls">
+      <button class="redeem-btn" onclick="redeem()">
+        Redeem \${benefit.label}
+      </button>
+    </div>
+  \`;
+}
+
+function selectKidsBenefit(benefitType) {
+  selectedKidsBenefit = benefitType;
+  renderKidsCreateControls();
+}
+
+async function redeem() {
+  if (!selectedVendor) return;
+  
+  const benefitKey = selectedVendor === 'KIDS_CREATE' ? selectedKidsBenefit : DEFAULT_BENEFIT[selectedVendor];
+  const body = { passId: PID };
+  
+  // Add vendor-specific data (but not geo for validation)
+  if (selectedVendor === 'SONOMA') {
+    body.cart = { hasBottle: document.getElementById('hasBottle')?.checked || false };
   }
-  if (vendorKey === 'LITTLE_SISTER') {
+  if (selectedVendor === 'FAT_CAT') {
+    body.cart = { paidItems: { scoop: document.getElementById('paidScoop')?.checked ? 1 : 0 } };
+  }
+  if (selectedVendor === 'LITTLE_SISTER') {
     body.context = { purchaseScope: 'CAFE' };
   }
 
+  // Show loading
+  const resultDiv = document.getElementById('result');
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = \`
+    <div class="result">
+      <div class="result-icon">⏳</div>
+      <div class="result-title">Processing...</div>
+      <div>Please wait while we process your redemption</div>
+    </div>
+  \`;
+
+  // Disable button
+  const btn = document.querySelector('.redeem-btn');
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
+
   try {
-    const r = await fetch('/redeem/'+vendorKey+'/'+benefitKey, {
+    const response = await fetch(\`/redeem/\${selectedVendor}/\${benefitKey}\`, {
       method: 'POST',
-      headers: {'Content-Type': 'application/json'},
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
     
-    const j = await r.json();
+    const result = await response.json();
     
-    // Replace the success handler:
-    if (j && j.ok) {
-      const remainingField = DEALS[vendorKey].benefits[benefitKey].passFieldRemaining;
-      const remaining = j.balances[remainingField];
+    if (result.ok) {
+      const benefit = DEALS[selectedVendor].benefits[benefitKey];
+      const remaining = result.balances[benefit.passFieldRemaining];
       
-      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
-        '<div class="ok" style="font-size:24px;margin-bottom:15px">✅ APPROVED</div>' +
-        '<div style="margin-bottom:10px">' +
-        '<strong>' + DEALS[vendorKey].label + '</strong><br>' +
-        '<span class="muted">' + DEALS[vendorKey].benefits[benefitKey].label + '</span>' +
-        '</div>' +
-        '<div style="margin-top:15px">' +
-        '<div class="muted">Remaining this month:</div>' +
-        '<div style="font-size:20px;margin-top:5px">' +
-        (remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left") +
-        '</div>' +
-        '</div>' +
-        '</div>';
+      resultDiv.innerHTML = \`
+        <div class="result success">
+          <div class="result-icon">✅</div>
+          <div class="result-title">Approved!</div>
+          <div style="margin-bottom: 16px;">
+            <strong>\${DEALS[selectedVendor].label}</strong><br>
+            <span style="color: var(--text-muted);">\${benefit.label}</span>
+          </div>
+          <div style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 8px;">
+            <div style="color: var(--text-muted); font-size: 14px;">Remaining this month:</div>
+            <div style="font-size: 18px; font-weight: 600; color: var(--success);">
+              \${remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left"}
+            </div>
+          </div>
+        </div>
+      \`;
     } else {
-      const reason = j.reason || 'HTTP ' + r.status;
-      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
-        '<div class="err" style="font-size:24px;margin-bottom:15px">❌ DENIED</div>' +
-        '<div>' + reason + '</div>' +
-        '</div>';
+      resultDiv.innerHTML = \`
+        <div class="result error">
+          <div class="result-icon">❌</div>
+          <div class="result-title">Denied</div>
+          <div>\${result.reason || 'Unable to process redemption'}</div>
+        </div>
+      \`;
     }
   } catch (error) {
-    out.innerHTML = '<div class="err" style="text-align:center;padding:20px 0;">' +
-      '<div style="font-size:24px;margin-bottom:15px">❌ ERROR</div>' +
-      '<div>' + error.message + '</div>' +
-      '</div>';
+    resultDiv.innerHTML = \`
+      <div class="result error">
+        <div class="result-icon">⚠️</div>
+        <div class="result-title">Error</div>
+        <div>\${error.message}</div>
+      </div>
+    \`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Redeem Again';
+    resultDiv.scrollIntoView({ behavior: 'smooth' });
   }
 }
 
-function wireVendorActions(vendorKey){
-  const btn = $('#redeemBtn'); 
-  if (btn) {
-    btn.onclick = async (e) => {
-      e.target.disabled = true;
-      e.target.textContent = 'Processing...';
-      await redeem(vendorKey);
-      e.target.disabled = false;
-      e.target.textContent = 'Redeem now';
-    };
-  }
-  const chg = $('#chooseShop'); 
-  if (chg) chg.onclick = renderShopChoices;
-  const useRetail = $('#useRetail'); 
-  if (useRetail) useRetail.onclick = async (e) => {
-    e.target.disabled = true;
-    await redeem('KIDS_CREATE','RETAIL_15_1X');
-    e.target.disabled = false;
-  };
-}
-
-function initForVendor(vendorKey, auto=false){
-  $('#where').textContent = 'Shop: '+vendorKey.replaceAll('_',' ');
-  renderControls(vendorKey);
-  wireVendorActions(vendorKey);
-  if (auto) redeem(vendorKey);
-}
-
-(function main(){
-  console.log('Raw PID from URL:', q.get('pid'));
-  console.log('Trimmed and decoded PID:', PID);
+// Initialize
+(async function init() {
+  // Show pass ID
+  document.getElementById('passId').textContent = PID || 'Invalid';
   
-  const pidDisplay = PID ? ('Pass: <span class="pill">'+PID+'</span>') : '<span class="err">Missing pass id</span>';
-  $('#pidLine').innerHTML = pidDisplay;
-  
-  if (!PID) return;
-
-  if (!('geolocation' in navigator)){
-    $('#where').innerHTML = 'Location unavailable — pick the shop:';
-    return renderShopChoices();
+  if (!PID) {
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result').innerHTML = \`
+      <div class="result error">
+        <div class="result-icon">⚠️</div>
+        <div class="result-title">Invalid Pass</div>
+        <div>No pass ID found in URL</div>
+      </div>
+    \`;
+    return;
   }
-  $('#where').textContent = 'Getting location…';
-  getGeo().then(p=>{
-    if (!p){ $('#where').innerHTML = 'Location blocked — pick the shop:'; return renderShopChoices(); }
-    const choice = pickByGPS(p.lat, p.lng, p.accuracy);
-    if (choice && choice.d <= (choice.radius/2) && p.accuracy <= 75){
-      $('#where').innerHTML = 'Shop detected: '+choice.vendorKey.replaceAll('_',' ')+' • '+metersFmt(Math.max(0,choice.d))+' away';
-      initForVendor(choice.vendorKey, true);
-    } else if (choice && choice.d <= choice.radius){
-      $('#where').innerHTML = 'Likely: '+choice.vendorKey.replaceAll('_',' ')+' • '+metersFmt(Math.max(0,choice.d))+' away (confirm below)';
-      initForVendor(choice.vendorKey, false);
-    } else {
-      $('#where').innerHTML = 'Not sure where you are — pick the shop:';
-      renderShopChoices();
-    }
-  });
-})();
-</script>`);
-});
 
-// Replace the /s endpoint with this fixed version:
-
-app.get("/s", (req, res) => {
-  res.type("html").send(`<!doctype html>
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Collective — Redeem</title>
-<style>
-  :root{--fg:#111;--muted:#666;--ok:#0a7b25;--err:#b00020;--bd:#e5e7eb}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:20px;color:var(--fg)}
-  .card{border:1px solid var(--bd);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  button{padding:10px 14px;border-radius:10px;border:1px solid var(--bd);background:#fff;cursor:pointer}
-  button.primary{background:#111;color:#fff;border-color:#111}
-  .ok{color:var(--ok);font-weight:600} .err{color:var(--err);font-weight:600}
-  .muted{color:var(--muted)} .pill{background:#f6f7f9;border:1px solid var(--bd);padding:2px 8px;border-radius:999px}
-  label{display:flex;gap:8px;align-items:center}
-  input[type=checkbox]{width:18px;height:18px}
-</style>
-
-<h2>Collective — Redeem</h2>
-<div class="card">
-  <div id="pidLine" class="muted">Reading pass…</div>
-  <div id="where" class="muted">Finding shop…</div>
-</div>
-
-<div id="controls" class="card" style="display:none"></div>
-<div id="result" class="card" style="display:none"></div>
-
-<script>
-// ---- Config injected from server ----
-const LOC = ` + JSON.stringify(LOC) + `;
-const DEFAULT_BENEFIT = ` + JSON.stringify(DEFAULT_BENEFIT) + `;
-const DEALS = ` + JSON.stringify(DEALS) + `;
-
-// ---- Utils ----
-const q = new URL(location.href).searchParams;
-const PID = decodeURIComponent((q.get('pid') || '').trim());
-console.log('Received PID:', PID); // Debug logging
-const $ = sel => document.querySelector(sel);
-const metersFmt = n => Math.round(n) + ' m';
-
-function distMeters(aLat,aLng,bLat,bLng){
-  const R=6371000, toRad=x=>x*Math.PI/180;
-  const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
-  const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2);
-  const a=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2;
-  return 2*R*Math.asin(Math.sqrt(a));
-}
-
-function pickByGPS(lat,lng,acc){
-  let best=null, bestScore=1e12;
-  for (const [k,v] of Object.entries(LOC)){
-    const d = distMeters(lat,lng,v.lat,v.lng) - (acc||0);
-    const score = d <= v.radius ? d : 1e11 + d;
-    if (score < bestScore){ best={vendorKey:k, d, radius:v.radius, acc}; bestScore=score; }
-  }
-  return best;
-}
-
-async function getGeo(){
-  return await new Promise(res=>{
-    navigator.geolocation.getCurrentPosition(
-      p=>res({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),
-      _=>res(null),
-      {enableHighAccuracy:true,timeout:8000,maximumAge:0}
-    );
-  });
-}
-
-function renderControls(vendorKey){
-  const box = $('#controls'); box.style.display='block';
-  const title = vendorKey.replaceAll('_',' ');
-  let inner = '<h3 style="margin-top:0">'+title+'</h3><div class="row" style="gap:14px">';
-  if (vendorKey === 'SONOMA'){
-    inner += '<label><input type="checkbox" id="hasBottle"> Includes bottle(s)</label>';
-  }
-  if (vendorKey === 'FAT_CAT'){
-    inner += '<label><input type="checkbox" id="paidScoop" checked> Paid scoop in order</label>';
-  }
-  if (vendorKey === 'LITTLE_SISTER'){
-    inner += '<span class="pill">Scope: Café</span>';
-  }
-  if (vendorKey === 'KIDS_CREATE'){
-    const workshopBenefit = DEALS[vendorKey].benefits.FRIDAY_WORKSHOP;
-    const retailBenefit = DEALS[vendorKey].benefits.RETAIL_15_1X;
+  // Try to get location
+  if (navigator.geolocation) {
+    document.getElementById('locationStatus').style.display = 'block';
     
-    inner += '<div style="display:flex;flex-direction:column;gap:12px;width:100%">' +
-      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')" style="text-align:left;padding:12px">' +
-      '<div style="font-weight:600;margin-bottom:4px">' + workshopBenefit.label + '</div>' +
-      '<div style="font-size:0.9em;opacity:0.9">' + workshopBenefit.description + '</div>' +
-      '</button>' +
-      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')" style="text-align:left;padding:12px">' +
-      '<div style="font-weight:600;margin-bottom:4px">' + retailBenefit.label + '</div>' +
-      '<div style="font-size:0.9em;opacity:0.9">' + retailBenefit.description + '</div>' +
-      '</button>' +
-      '</div>';
-    return box.innerHTML = inner;
-  }
-  inner += '</div><div style="margin-top:10px" class="row">' +
-           '<button class="primary" id="redeemBtn">Redeem now</button>' +
-           '<button id="chooseShop">Change shop</button>' +
-           '</div>';
-  box.innerHTML = inner;
-}
-
-function renderShopChoices(){
-  const box = $('#controls'); box.style.display='block';
-  let inner = '<h3 style="margin-top:0">Pick the shop</h3><div style="display:flex;flex-direction:column;gap:12px">';
-  
-  for (const [k, deal] of Object.entries(DEALS)){
-    const defaultBenefit = deal.benefits[DEFAULT_BENEFIT[k]];
-    inner += '<button data-k="' + k + '" style="text-align:left;padding:12px;border:1px solid var(--bd);border-radius:8px;background:white;cursor:pointer">' +
-      '<div style="font-weight:600;margin-bottom:4px">' + deal.label + '</div>' +
-      '<div style="font-size:0.9em;color:var(--muted);margin-bottom:6px">' + deal.description + '</div>' +
-      '<div style="font-size:0.85em;color:var(--ok);font-weight:500">' + defaultBenefit.label + '</div>' +
-      '<div style="font-size:0.8em;color:var(--muted)">' + defaultBenefit.description + '</div>' +
-      '</button>';
-  }
-  
-  inner += '</div>';
-  box.innerHTML = inner;
-  box.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => initForVendor(b.dataset.k));
-}
-
-async function redeem(vendorKey, overrideBenefit) {
-  const benefitKey = overrideBenefit || DEFAULT_BENEFIT[vendorKey];
-  const geo = await getGeo();
-  const body = { passId: PID, geo };
-
-  // Show loading state
-  const out = $('#result');
-  out.style.display = 'block';
-  out.innerHTML = '<div class="muted">Processing redemption...</div>';
-
-  // Add vendor-specific data
-  if (vendorKey === 'SONOMA') {
-    body.cart = { hasBottle: $('#hasBottle')?.checked || false };
-  }
-  if (vendorKey === 'FAT_CAT') {
-    const paid = $('#paidScoop')?.checked ? 1 : 0;
-    body.cart = { paidItems: { scoop: paid } };
-  }
-  if (vendorKey === 'LITTLE_SISTER') {
-    body.context = { purchaseScope: 'CAFE' };
-  }
-
-  try {
-    const r = await fetch('/redeem/'+vendorKey+'/'+benefitKey, {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(body)
-    });
-    
-    const j = await r.json();
-    
-    // Replace the success handler:
-    if (j && j.ok) {
-      const remainingField = DEALS[vendorKey].benefits[benefitKey].passFieldRemaining;
-      const remaining = j.balances[remainingField];
-      
-      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
-        '<div class="ok" style="font-size:24px;margin-bottom:15px">✅ APPROVED</div>' +
-        '<div style="margin-bottom:10px">' +
-        '<strong>' + DEALS[vendorKey].label + '</strong><br>' +
-        '<span class="muted">' + DEALS[vendorKey].benefits[benefitKey].label + '</span>' +
-        '</div>' +
-        '<div style="margin-top:15px">' +
-        '<div class="muted">Remaining this month:</div>' +
-        '<div style="font-size:20px;margin-top:5px">' +
-        (remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left") +
-        '</div>' +
-        '</div>' +
-        '</div>';
-    } else {
-      const reason = j.reason || 'HTTP ' + r.status;
-      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
-        '<div class="err" style="font-size:24px;margin-bottom:15px">❌ DENIED</div>' +
-        '<div>' + reason + '</div>' +
-        '</div>';
+    try {
+      userLocation = await getGeo();
+      if (userLocation) {
+        const nearest = findNearestShop(userLocation.lat, userLocation.lng);
+        if (nearest && nearest.withinRadius) {
+          document.getElementById('locationStatus').innerHTML = \`
+            <span class="status-indicator status-success">
+              📍 You're near \${DEALS[nearest.key].label}
+            </span>
+          \`;
+        } else {
+          document.getElementById('locationStatus').style.display = 'none';
+        }
+      } else {
+        document.getElementById('locationStatus').style.display = 'none';
+      }
+    } catch (error) {
+      document.getElementById('locationStatus').style.display = 'none';
     }
-  } catch (error) {
-    out.innerHTML = '<div class="err" style="text-align:center;padding:20px 0;">' +
-      '<div style="font-size:24px;margin-bottom:15px">❌ ERROR</div>' +
-      '<div>' + error.message + '</div>' +
-      '</div>';
   }
-}
 
-function wireVendorActions(vendorKey){
-  const btn = $('#redeemBtn'); 
-  if (btn) {
-    btn.onclick = async (e) => {
-      e.target.disabled = true;
-      e.target.textContent = 'Processing...';
-      await redeem(vendorKey);
-      e.target.disabled = false;
-      e.target.textContent = 'Redeem now';
-    };
-  }
-  const chg = $('#chooseShop'); 
-  if (chg) chg.onclick = renderShopChoices;
-  const useRetail = $('#useRetail'); 
-  if (useRetail) useRetail.onclick = async (e) => {
-    e.target.disabled = true;
-    await redeem('KIDS_CREATE','RETAIL_15_1X');
-    e.target.disabled = false;
-  };
-}
-
-function initForVendor(vendorKey, auto=false){
-  $('#where').textContent = 'Shop: '+vendorKey.replaceAll('_',' ');
-  renderControls(vendorKey);
-  wireVendorActions(vendorKey);
-  if (auto) redeem(vendorKey);
-}
-
-(function main(){
-  console.log('Raw PID from URL:', q.get('pid'));
-  console.log('Trimmed and decoded PID:', PID);
-  
-  const pidDisplay = PID ? ('Pass: <span class="pill">'+PID+'</span>') : '<span class="err">Missing pass id</span>';
-  $('#pidLine').innerHTML = pidDisplay;
-  
-  if (!PID) return;
-
-  if (!('geolocation' in navigator)){
-    $('#where').innerHTML = 'Location unavailable — pick the shop:';
-    return renderShopChoices();
-  }
-  $('#where').textContent = 'Getting location…';
-  getGeo().then(p=>{
-    if (!p){ $('#where').innerHTML = 'Location blocked — pick the shop:'; return renderShopChoices(); }
-    const choice = pickByGPS(p.lat, p.lng, p.accuracy);
-    if (choice && choice.d <= (choice.radius/2) && p.accuracy <= 75){
-      $('#where').innerHTML = 'Shop detected: '+choice.vendorKey.replaceAll('_',' ')+' • '+metersFmt(Math.max(0,choice.d))+' away';
-      initForVendor(choice.vendorKey, true);
-    } else if (choice && choice.d <= choice.radius){
-      $('#where').innerHTML = 'Likely: '+choice.vendorKey.replaceAll('_',' ')+' • '+metersFmt(Math.max(0,choice.d))+' away (confirm below)';
-      initForVendor(choice.vendorKey, false);
-    } else {
-      $('#where').innerHTML = 'Not sure where you are — pick the shop:';
-      renderShopChoices();
-    }
-  });
+  // Render shops
+  renderShops();
 })();
 </script>`);
 });
