@@ -543,33 +543,28 @@ async function redeem(vendorKey, overrideBenefit) {
     const j = await r.json();
     
     if (j && j.ok) {
-      // Get remaining count for current vendor
       const remainingField = DEALS[vendorKey].benefits[benefitKey].passFieldRemaining;
       const remaining = j.balances[remainingField];
       
-      out.innerHTML = `
-        <div style="text-align:center;padding:20px 0;">
-          <div class="ok" style="font-size:24px;margin-bottom:15px">✅ APPROVED</div>
-          <div style="margin-bottom:10px">
-            <strong>${DEALS[vendorKey].label}</strong><br>
-            <span class="muted">${DEALS[vendorKey].benefits[benefitKey].label}</span>
-          </div>
-          <div style="margin-top:15px">
-            <div class="muted">Remaining this month:</div>
-            <div style="font-size:20px;margin-top:5px">
-              ${remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left"}
-            </div>
-          </div>
-        </div>
-      `;
+      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
+        '<div class="ok" style="font-size:24px;margin-bottom:15px">✅ APPROVED</div>' +
+        '<div style="margin-bottom:10px">' +
+        '<strong>' + DEALS[vendorKey].label + '</strong><br>' +
+        '<span class="muted">' + DEALS[vendorKey].benefits[benefitKey].label + '</span>' +
+        '</div>' +
+        '<div style="margin-top:15px">' +
+        '<div class="muted">Remaining this month:</div>' +
+        '<div style="font-size:20px;margin-top:5px">' +
+        (remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left") +
+        '</div>' +
+        '</div>' +
+        '</div>';
     } else {
-      const reason = j.reason || 'HTTP '+r.status;
-      out.innerHTML = `
-        <div style="text-align:center;padding:20px 0;">
-          <div class="err" style="font-size:24px;margin-bottom:15px">❌ DENIED</div>
-          <div>${reason}</div>
-        </div>
-      `;
+      const reason = j.reason || 'HTTP ' + r.status;
+      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
+        '<div class="err" style="font-size:24px;margin-bottom:15px">❌ DENIED</div>' +
+        '<div>' + reason + '</div>' +
+        '</div>';
     }
   } catch (error) {
     out.innerHTML = `
