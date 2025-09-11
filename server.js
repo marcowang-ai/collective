@@ -426,8 +426,249 @@ app.get("/s", (req, res) => {
 
 <script>
 // ---- Config injected from server ----
-const LOC = ${JSON.stringify(LOC)};
-const DEFAULT_BENEFIT = ${JSON.stringify(DEFAULT_BENEFIT)};
+const LOC = ` + JSON.stringify(LOC) + `;
+const DEFAULT_BENEFIT = ` + JSON.stringify(DEFAULT_BENEFIT) + `;
+const DEALS = ` + JSON.stringify(DEALS) + `;
+
+// ---- Utils ----
+const q = new URL(location.href).searchParams;
+const PID = decodeURIComponent((q.get('pid') || '').trim());
+console.log('Received PID:', PID);
+const $ = sel => document.querySelector(sel);
+const metersFmt = n => Math.round(n) + ' m';
+
+function distMeters(aLat,aLng,bLat,bLng){
+  const R=6371000, toRad=x=>x*Math.PI/180;
+  const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
+  const s1=Math.sin(dLat/2), s2=Math.sin(dLng/2);
+  const a=s1*s1 + Math.cos(toRad(aLat))*Math.cos(toRad(bLat))*s2*s2;
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+
+function pickByGPS(lat,lng,acc){
+  let best=null, bestScore=1e12;
+  for (const [k,v] of Object.entries(LOC)){
+    const d = distMeters(lat,lng,v.lat,v.lng) - (acc||0);
+    const score = d <= v.radius ? d : 1e11 + d;
+    if (score < bestScore){ best={vendorKey:k, d, radius:v.radius, acc}; bestScore=score; }
+  }
+  return best;
+}
+
+async function getGeo(){
+  return await new Promise(res=>{
+    navigator.geolocation.getCurrentPosition(
+      p=>res({lat:p.coords.latitude,lng:p.coords.longitude,accuracy:p.coords.accuracy}),
+      _=>res(null),
+      {enableHighAccuracy:true,timeout:8000,maximumAge:0}
+    );
+  });
+}
+
+function renderControls(vendorKey){
+  const box = $('#controls'); box.style.display='block';
+  const title = vendorKey.replaceAll('_',' ');
+  let inner = '<h3 style="margin-top:0">'+title+'</h3><div class="row" style="gap:14px">';
+  if (vendorKey === 'SONOMA'){
+    inner += '<label><input type="checkbox" id="hasBottle"> Includes bottle(s)</label>';
+  }
+  if (vendorKey === 'FAT_CAT'){
+    inner += '<label><input type="checkbox" id="paidScoop" checked> Paid scoop in order</label>';
+  }
+  if (vendorKey === 'LITTLE_SISTER'){
+    inner += '<span class="pill">Scope: Café</span>';
+  }
+  if (vendorKey === 'KIDS_CREATE'){
+    inner += '<div style="display:flex;flex-direction:column;gap:10px;width:100%">' +
+             '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')">Use Friday Workshop</button>' +
+             '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')">Use 15% Off Retail</button>' +
+             '</div>';
+    return box.innerHTML = inner;
+  }
+  inner += '</div><div style="margin-top:10px" class="row">' +
+           '<button class="primary" id="redeemBtn">Redeem now</button>' +
+           '<button id="chooseShop">Change shop</button>' +
+           '</div>';
+  box.innerHTML = inner;
+}
+
+function renderShopChoices(){
+  const box = $('#controls'); box.style.display='block';
+  let inner = '<h3 style="margin-top:0">Pick the shop</h3><div class="row" style="gap:8px">';
+  const labels = {
+    SONOMA: "Sonoma - 10% off purchase",
+    LITTLE_SISTER: "Little Sister - 10% off",
+    FAT_CAT: "Fat Cat Creamery - Buy 1 Get 1 Scoop",
+    POLISH_BAR: "Polish Bar - Free Dazzle Dry Upgrade",
+    THREADFARE: "Threadfare - 10% Off",
+    KIDS_CREATE: "KidCreate - One Free Friday Workshop / 15% off retail",
+    TULUM: "Tulum - 10% off service/retail"
+  };
+  for (const k of Object.keys(LOC)){
+    inner += '<button data-k="'+k+'">'+labels[k]+'</button>';
+  }
+  inner += '</div>';
+  box.innerHTML = inner;
+  box.querySelectorAll('button[data-k]').forEach(b => b.onclick = () => initForVendor(b.dataset.k));
+}
+
+async function redeem(vendorKey, overrideBenefit) {
+  const benefitKey = overrideBenefit || DEFAULT_BENEFIT[vendorKey];
+  const geo = await getGeo();
+  const body = { passId: PID, geo };
+
+  // Show loading state
+  const out = $('#result');
+  out.style.display = 'block';
+  out.innerHTML = '<div class="muted">Processing redemption...</div>';
+
+  // Add vendor-specific data
+  if (vendorKey === 'SONOMA') {
+    body.cart = { hasBottle: $('#hasBottle')?.checked || false };
+  }
+  if (vendorKey === 'FAT_CAT') {
+    const paid = $('#paidScoop')?.checked ? 1 : 0;
+    body.cart = { paidItems: { scoop: paid } };
+  }
+  if (vendorKey === 'LITTLE_SISTER') {
+    body.context = { purchaseScope: 'CAFE' };
+  }
+
+  try {
+    const r = await fetch('/redeem/'+vendorKey+'/'+benefitKey, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    
+    const j = await r.json();
+    
+    // Replace the success handler:
+    if (j && j.ok) {
+      const remainingField = DEALS[vendorKey].benefits[benefitKey].passFieldRemaining;
+      const remaining = j.balances[remainingField];
+      
+      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
+        '<div class="ok" style="font-size:24px;margin-bottom:15px">✅ APPROVED</div>' +
+        '<div style="margin-bottom:10px">' +
+        '<strong>' + DEALS[vendorKey].label + '</strong><br>' +
+        '<span class="muted">' + DEALS[vendorKey].benefits[benefitKey].label + '</span>' +
+        '</div>' +
+        '<div style="margin-top:15px">' +
+        '<div class="muted">Remaining this month:</div>' +
+        '<div style="font-size:20px;margin-top:5px">' +
+        (remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left") +
+        '</div>' +
+        '</div>' +
+        '</div>';
+    } else {
+      const reason = j.reason || 'HTTP ' + r.status;
+      out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
+        '<div class="err" style="font-size:24px;margin-bottom:15px">❌ DENIED</div>' +
+        '<div>' + reason + '</div>' +
+        '</div>';
+    }
+  } catch (error) {
+    out.innerHTML = '<div class="err" style="text-align:center;padding:20px 0;">' +
+      '<div style="font-size:24px;margin-bottom:15px">❌ ERROR</div>' +
+      '<div>' + error.message + '</div>' +
+      '</div>';
+  }
+}
+
+function wireVendorActions(vendorKey){
+  const btn = $('#redeemBtn'); 
+  if (btn) {
+    btn.onclick = async (e) => {
+      e.target.disabled = true;
+      e.target.textContent = 'Processing...';
+      await redeem(vendorKey);
+      e.target.disabled = false;
+      e.target.textContent = 'Redeem now';
+    };
+  }
+  const chg = $('#chooseShop'); 
+  if (chg) chg.onclick = renderShopChoices;
+  const useRetail = $('#useRetail'); 
+  if (useRetail) useRetail.onclick = async (e) => {
+    e.target.disabled = true;
+    await redeem('KIDS_CREATE','RETAIL_15_1X');
+    e.target.disabled = false;
+  };
+}
+
+function initForVendor(vendorKey, auto=false){
+  $('#where').textContent = 'Shop: '+vendorKey.replaceAll('_',' ');
+  renderControls(vendorKey);
+  wireVendorActions(vendorKey);
+  if (auto) redeem(vendorKey);
+}
+
+(function main(){
+  console.log('Raw PID from URL:', q.get('pid'));
+  console.log('Trimmed and decoded PID:', PID);
+  
+  const pidDisplay = PID ? ('Pass: <span class="pill">'+PID+'</span>') : '<span class="err">Missing pass id</span>';
+  $('#pidLine').innerHTML = pidDisplay;
+  
+  if (!PID) return;
+
+  if (!('geolocation' in navigator)){
+    $('#where').innerHTML = 'Location unavailable — pick the shop:';
+    return renderShopChoices();
+  }
+  $('#where').textContent = 'Getting location…';
+  getGeo().then(p=>{
+    if (!p){ $('#where').innerHTML = 'Location blocked — pick the shop:'; return renderShopChoices(); }
+    const choice = pickByGPS(p.lat, p.lng, p.accuracy);
+    if (choice && choice.d <= (choice.radius/2) && p.accuracy <= 75){
+      $('#where').innerHTML = 'Shop detected: '+choice.vendorKey.replaceAll('_',' ')+' • '+metersFmt(Math.max(0,choice.d))+' away';
+      initForVendor(choice.vendorKey, true);
+    } else if (choice && choice.d <= choice.radius){
+      $('#where').innerHTML = 'Likely: '+choice.vendorKey.replaceAll('_',' ')+' • '+metersFmt(Math.max(0,choice.d))+' away (confirm below)';
+      initForVendor(choice.vendorKey, false);
+    } else {
+      $('#where').innerHTML = 'Not sure where you are — pick the shop:';
+      renderShopChoices();
+    }
+  });
+})();
+</script>`);
+});
+
+// Replace the /s endpoint with this fixed version:
+
+app.get("/s", (req, res) => {
+  res.type("html").send(`<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Collective — Redeem</title>
+<style>
+  :root{--fg:#111;--muted:#666;--ok:#0a7b25;--err:#b00020;--bd:#e5e7eb}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;margin:20px;color:var(--fg)}
+  .card{border:1px solid var(--bd);border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button{padding:10px 14px;border-radius:10px;border:1px solid var(--bd);background:#fff;cursor:pointer}
+  button.primary{background:#111;color:#fff;border-color:#111}
+  .ok{color:var(--ok);font-weight:600} .err{color:var(--err);font-weight:600}
+  .muted{color:var(--muted)} .pill{background:#f6f7f9;border:1px solid var(--bd);padding:2px 8px;border-radius:999px}
+  label{display:flex;gap:8px;align-items:center}
+  input[type=checkbox]{width:18px;height:18px}
+</style>
+
+<h2>Collective — Redeem</h2>
+<div class="card">
+  <div id="pidLine" class="muted">Reading pass…</div>
+  <div id="where" class="muted">Finding shop…</div>
+</div>
+
+<div id="controls" class="card" style="display:none"></div>
+<div id="result" class="card" style="display:none"></div>
+
+<script>
+// ---- Config injected from server ----
+const LOC = ` + JSON.stringify(LOC) + `;
+const DEFAULT_BENEFIT = ` + JSON.stringify(DEFAULT_BENEFIT) + `;
+const DEALS = ` + JSON.stringify(DEALS) + `;
 
 // ---- Utils ----
 const q = new URL(location.href).searchParams;
