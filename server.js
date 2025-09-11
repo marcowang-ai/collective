@@ -741,6 +741,76 @@ async function issueBadge() {
 </script>`);
 });
 
+// Add before app.listen()
+
+app.get("/redeem-test", (req, res) => {
+  res.type("html").send(`<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Test Redemption</title>
+
+<h2>Test Redemption</h2>
+<div>
+  <div>
+    <label>Pass ID:</label><br>
+    <input type="text" id="passId" value="P-001">
+  </div>
+  <br>
+  <div>
+    <label>Vendor:</label><br>
+    <select id="vendorKey">
+      <option value="SONOMA">Sonoma</option>
+      <option value="LITTLE_SISTER">Little Sister</option>
+      <option value="FAT_CAT">Fat Cat</option>
+      <option value="POLISH_BAR">Polish Bar</option>
+      <option value="THREADFARE">Threadfare</option>
+      <option value="KIDS_CREATE">Kids Create</option>
+      <option value="TULUM">Tulum</option>
+    </select>
+  </div>
+  <br>
+  <div>
+    <label>Skip Geofencing:</label><br>
+    <input type="checkbox" id="skipGeo" checked>
+  </div>
+  <br>
+  <button onclick="testRedeem()">Test Redeem</button>
+  <pre id="result"></pre>
+</div>
+
+<script>
+async function testRedeem() {
+  const passId = document.getElementById('passId').value;
+  const vendorKey = document.getElementById('vendorKey').value;
+  const skipGeo = document.getElementById('skipGeo').checked;
+  const benefitKey = {
+    SONOMA: "PERCENT_10",
+    LITTLE_SISTER: "CAFE_PERCENT_10",
+    FAT_CAT: "BOGO_SCOOP",
+    POLISH_BAR: "DAZZLE_DRY_UPGRADE",
+    THREADFARE: "PERCENT_10_1X",
+    KIDS_CREATE: "FRIDAY_WORKSHOP",
+    TULUM: "PERCENT_10"
+  }[vendorKey];
+  
+  try {
+    const response = await fetch('/redeem/' + vendorKey + '/' + benefitKey + (skipGeo ? '?skipGeo=true' : ''), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        passId,
+        geo: { lat: 29.817091, lng: -95.422111, accuracy: 5 }
+      })
+    });
+    
+    const result = await response.json();
+    document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    document.getElementById('result').textContent = 'Error: ' + error.message;
+  }
+}
+</script>`);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
