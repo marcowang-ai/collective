@@ -811,6 +811,75 @@ async function testRedeem() {
 </script>`);
 });
 
+// Add this new endpoint before app.listen()
+
+app.get("/test", (req, res) => {
+  res.type("html").send(`<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Test Redemption</title>
+<style>
+  body { font-family: system-ui; max-width: 600px; margin: 20px auto; padding: 0 20px; }
+  .form-group { margin: 15px 0; }
+  label { display: block; margin-bottom: 5px; }
+  input, select { width: 100%; padding: 8px; margin-bottom: 10px; }
+  button { padding: 10px 20px; background: #000; color: #fff; border: none; border-radius: 5px; }
+  #result { margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px; }
+</style>
+
+<h2>Test Redemption</h2>
+<div class="form-group">
+  <label>Pass ID:</label>
+  <input type="text" id="passId" value="P-001">
+</div>
+
+<div class="form-group">
+  <label>Vendor:</label>
+  <select id="vendorKey">
+    <option value="SONOMA">Sonoma</option>
+    <option value="LITTLE_SISTER">Little Sister</option>
+    <option value="FAT_CAT">Fat Cat</option>
+    <option value="POLISH_BAR">Polish Bar</option>
+    <option value="THREADFARE">Threadfare</option>
+    <option value="KIDS_CREATE">Kids Create</option>
+    <option value="TULUM">Tulum</option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label>
+    <input type="checkbox" id="skipGeo" checked>
+    Skip Geofencing
+  </label>
+</div>
+
+<button onclick="testRedeem()">Test Redeem</button>
+<pre id="result"></pre>
+
+<script>
+async function testRedeem() {
+  const passId = document.getElementById('passId').value;
+  const vendorKey = document.getElementById('vendorKey').value;
+  const skipGeo = document.getElementById('skipGeo').checked;
+  
+  try {
+    const response = await fetch('/redeem/' + vendorKey + '/PERCENT_10' + (skipGeo ? '?skipGeo=true' : ''), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        passId,
+        geo: { lat: 29.817091, lng: -95.422111, accuracy: 5 }
+      })
+    });
+    
+    const result = await response.json();
+    document.getElementById('result').textContent = JSON.stringify(result, null, 2);
+  } catch (error) {
+    document.getElementById('result').textContent = 'Error: ' + error.message;
+  }
+}
+</script>`);
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
