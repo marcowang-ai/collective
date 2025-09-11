@@ -478,16 +478,14 @@ function renderControls(vendorKey){
     inner += '<span class="pill">Scope: Café</span>';
   }
   if (vendorKey === 'KIDS_CREATE'){
-    inner += `
-      <div style="display:flex;flex-direction:column;gap:10px;width:100%">
-        <button class="primary" onclick="redeem('KIDS_CREATE', 'FRIDAY_WORKSHOP')">
-          Use Friday Workshop
-        </button>
-        <button class="primary" onclick="redeem('KIDS_CREATE', 'RETAIL_15_1X')">
-          Use 15% Off Retail
-        </button>
-      </div>
-    `;
+    inner += '<div style="display:flex;flex-direction:column;gap:10px;width:100%">' +
+      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'FRIDAY_WORKSHOP\')">' +
+      'Use Friday Workshop' +
+      '</button>' +
+      '<button class="primary" onclick="redeem(\'KIDS_CREATE\', \'RETAIL_15_1X\')">' +
+      'Use 15% Off Retail' +
+      '</button>' +
+      '</div>';
     return box.innerHTML = inner; // Early return for Kids Create
   }
   inner += '</div><div style="margin-top:10px" class="row">' +
