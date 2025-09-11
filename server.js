@@ -697,6 +697,22 @@ function generateId() {
   return id;
 }
 
+// Update the generateId function
+
+function generateId() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  
+  lastNum++;
+  localStorage.setItem('lastMemberId', lastNum);
+  
+  const id = \`\${year}\${month}\${day}_FC\${padNumber(lastNum)}\`;  // Fixed backtick
+  document.getElementById('memberId').value = id;
+  return id;
+}
+
 document.addEventListener('DOMContentLoaded', generateId);
 
 async function issueBadge() {
@@ -718,15 +734,16 @@ async function issueBadge() {
     
     const result = await response.json();
     
+    // Update the issueBadge function's result HTML
     if (result.ok) {
       const downloadUrl = result.data.pass.downloadUrl;
-      document.getElementById('result').innerHTML = \`
+      document.getElementById('result').innerHTML = `
         <div>✅ Pass created successfully!</div>
         <div>
-          <a href="\${downloadUrl}" target="_blank">Download Pass</a>
-          <a href="/s?pid=\${memberId}">View Redemption Page</a>
+          <a href="${downloadUrl}" target="_blank">Download Pass</a>
+          <a href="/s?pid=${memberId}">View Redemption Page</a>
         </div>
-      \`;
+      `;  // Fixed backtick
       
       if (downloadUrl) {
         window.location.href = downloadUrl;
