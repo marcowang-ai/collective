@@ -567,12 +567,10 @@ async function redeem(vendorKey, overrideBenefit) {
         '</div>';
     }
   } catch (error) {
-    out.innerHTML = `
-      <div class="err" style="text-align:center;padding:20px 0;">
-        <div style="font-size:24px;margin-bottom:15px">❌ ERROR</div>
-        <div>${error.message}</div>
-      </div>
-    `;
+    out.innerHTML = '<div style="text-align:center;padding:20px 0;">' +
+      '<div class="err" style="font-size:24px;margin-bottom:15px">❌ ERROR</div>' +
+      '<div>' + error.message + '</div>' +
+      '</div>';
   }
 }
 
