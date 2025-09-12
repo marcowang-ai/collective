@@ -291,8 +291,9 @@ app.post("/issue-badge", async (req, res) => {
       attributes: {
         holder_name: name,
         display_name: name,
-        pass_id: memberId,  // Added for display
-        member_id: memberId, // Added for display
+        pass_id: memberId,
+        member_id: memberId,
+        redeem_url: `https://flowe-collective.onrender.com/s?pid=${memberId}`, // NEW
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
