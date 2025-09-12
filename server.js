@@ -1030,6 +1030,147 @@ async function redeem() {
 `);
 });
 
+// Add redirect endpoint
+app.get('/r/:pid', (req, res) => {
+  const pid = decodeURIComponent(req.params.pid || '').trim();
+  if (!pid) return res.redirect('/issue');
+  res.redirect(`/s?pid=${encodeURIComponent(pid)}`);
+});
+
+// Root redirect
+app.get("/", (req, res) => {
+  res.redirect("/issue");
+});
+
+// Issue badge form (the big HTML form)
+app.get("/issue", (req, res) => {
+  res.type("html").send(`<!doctype html>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Issue Collective Pass</title>
+<style>
+  :root {
+    --primary: #2d2d2a;
+    --secondary: #847577;
+    --success: #0a7b25;
+    --error: #b00020;
+    --bg: #fafafa;
+    --card-bg: #ffffff;
+    --border: #e5e7eb;
+    --text: #111827;
+    --text-muted: #6b7280;
+    --radius: 16px;
+    --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    margin: 0; padding: 20px; background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  .container { max-width: 480px; margin: 0 auto; }
+  .header { text-align: center; margin-bottom: 32px; }
+  .header h1 { margin: 0; font-size: 28px; font-weight: 700; color: var(--primary); }
+  .header p { margin: 8px 0 0; color: var(--text-muted); font-size: 16px; }
+  .card { background: var(--card-bg); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; box-shadow: var(--shadow); border: 1px solid var(--border); }
+  .form-group { margin-bottom: 24px; }
+  label { display: block; font-weight: 600; color: var(--primary); margin-bottom: 8px; font-size: 16px; }
+  input { width: 100%; padding: 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 16px; }
+  .input-group { display: flex; gap: 12px; }
+  .input-group input { flex: 1; }
+  .generate-btn { padding: 16px 20px; background: var(--secondary); color: white; border: none; border-radius: 12px; cursor: pointer; }
+  .create-btn { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 18px; cursor: pointer; }
+</style>
+
+<div class="container">
+  <div class="header">
+    <h1>🎫 Issue Collective Pass</h1>
+    <p>Create a new membership pass</p>
+  </div>
+  
+  <div class="card">
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="name" placeholder="Enter name">
+    </div>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="email" placeholder="Enter email">
+    </div>
+    <div class="form-group">
+      <label>Member ID</label>
+      <div class="input-group">
+        <input type="text" id="memberId" readonly>
+        <button class="generate-btn" onclick="generateId()">Generate</button>
+      </div>
+    </div>
+    <button class="create-btn" onclick="issueBadge()">Create Pass</button>
+  </div>
+  
+  <div id="result" style="display:none;"></div>
+</div>
+
+<script>
+let lastNum = parseInt(localStorage.getItem('lastMemberId') || '0');
+function generateId() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = ('0' + (now.getMonth() + 1)).slice(-2);
+  const day = ('0' + now.getDate()).slice(-2);
+  lastNum++;
+  localStorage.setItem('lastMemberId', lastNum);
+  const id = year + month + day + '_FC' + ('0000' + lastNum).slice(-4);
+  document.getElementById('memberId').value = id;
+}
+
+async function issueBadge() {
+  const name = document.getElementById('name').value.trim();
+  const email = document.getElementById('email').value.trim();
+  const memberId = document.getElementById('memberId').value.trim();
+  
+  if (!name || !email || !memberId) {
+    alert('Please fill all fields');
+    return;
+  }
+  
+  try {
+    const response = await fetch('/issue-badge', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, memberId })
+    });
+    const result = await response.json();
+    
+    if (result.ok) {
+      document.getElementById('result').innerHTML = \`
+        <div style="text-align:center; padding:20px; background:#f0fdf4; border-radius:12px;">
+          <h3>✅ Pass Created!</h3>
+          <p>Member ID: \${memberId}</p>
+          \${result.data?.pass?.downloadUrl ? \`<a href="\${result.data.pass.downloadUrl}" target="_blank">Download Pass</a>\` : ''}
+        </div>
+      \`;
+      document.getElementById('result').style.display = 'block';
+    } else {
+      alert('Error: ' + result.error);
+    }
+  } catch (error) {
+    alert('Network error: ' + error.message);
+  }
+}
+
+generateId();
+</script>`);
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+  res.status(500).json({ ok: false, error: 'Internal Server Error' });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ ok: false, error: 'Not Found' });
+});
+
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
