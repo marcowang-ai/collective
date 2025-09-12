@@ -136,6 +136,36 @@ const DEALS = {
   }
 };
 
+// === Monthly benefit tracking (in-memory) ===
+const PASS_DEFAULTS = {
+  sonoma_remaining: "1",
+  littlesister_remaining: "1",
+  fatcat_remaining: "1",
+  polishbar_remaining: "1",
+  threadfare_remaining: "1",
+  kidscreate_workshop_remaining: "1",
+  kidscreate_retail_remaining: "1",
+  tulum_remaining: "1"
+};
+const passStore = new Map();
+
+function monthKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2,'0');
+}
+
+function getPassState(passId) {
+  if (!passStore.has(passId)) {
+    passStore.set(passId, { ...PASS_DEFAULTS, current_month: monthKey() });
+  }
+  const state = passStore.get(passId);
+  if (state.current_month !== monthKey()) {
+    // Reset for new month
+    Object.assign(state, { ...PASS_DEFAULTS, current_month: monthKey() });
+  }
+  return state;
+}
+
 function haversineMeters(aLat,aLng,bLat,bLng){
   const R=6371000, toRad=x=>x*Math.PI/180;
   const dLat=toRad(bLat-aLat), dLng=toRad(bLng-aLng);
@@ -297,12 +327,9 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
   const { vendorKey, benefitKey } = req.params;
   const { passId, geo } = req.body || {};
 
-  // Validate required fields
-  if (!passId) {
-    return res.status(400).json({ ok: false, reason: "MISSING_PASS_ID" });
-  }
+  if (!passId) return res.status(400).json({ ok: false, reason: "MISSING_PASS_ID" });
 
-  // Geofence check
+  // Geofence
   const loc = LOC[vendorKey];
   if (loc) {
     if (!geo) {
@@ -312,25 +339,43 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
     }
   }
 
-  // Return updated balances after redemption
-  const balances = {
-    sonoma_remaining: vendorKey === "SONOMA" ? "0" : "1",
-    littlesister_remaining: vendorKey === "LITTLE_SISTER" ? "0" : "1",
-    fatcat_remaining: vendorKey === "FAT_CAT" ? "0" : "1",
-    polishbar_remaining: vendorKey === "POLISH_BAR" ? "0" : "1",
-    threadfare_remaining: vendorKey === "THREADFARE" ? "0" : "1",
-    kidscreate_workshop_remaining: vendorKey === "KIDS_CREATE" && benefitKey === "FRIDAY_WORKSHOP" ? "0" : "1",
-    kidscreate_retail_remaining: vendorKey === "KIDS_CREATE" && benefitKey === "RETAIL_15_1X" ? "0" : "1",
-    tulum_remaining: vendorKey === "TULUM" ? "0" : "1"
-  };
+  // Validate benefit definition
+  const vendor = DEALS[vendorKey];
+  const benefitDef = vendor?.benefits?.[benefitKey];
+  if (!vendor || !benefitDef) {
+    return res.json({ ok: false, reason: "INVALID_BENEFIT" });
+  }
 
-  res.json({
+  const field = benefitDef.passFieldRemaining;
+  if (!field) {
+    return res.json({ ok: false, reason: "MISSING_FIELD_MAPPING" });
+  }
+
+  // Load & monthly-reset state
+  const state = getPassState(passId);
+
+  const remaining = parseInt(state[field] || "0", 10);
+  if (remaining <= 0) {
+    return res.json({
+      ok: false,
+      reason: "BENEFIT_EXHAUSTED",
+      passId,
+      vendorKey,
+      benefitKey,
+      balances: state
+    });
+  }
+
+  // Decrement
+  state[field] = String(remaining - 1);
+
+  return res.json({
     ok: true,
     vendorKey,
     benefitKey,
     passId,
     geoValidated: !!loc && !!geo && withinFence(geo, loc),
-    balances
+    balances: state
   });
 });
 
