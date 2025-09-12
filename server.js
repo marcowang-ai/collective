@@ -887,9 +887,7 @@ async function redeem() {
   const body = { passId: PID };
   
   // Add vendor-specific data (but not geo for validation)
-  if (selectedVendor === 'SONOMA') {
-    body.cart = { hasBottle: document.getElementById('hasBottle')?.checked || false };
-  }
+  // Remove Sonoma cart data since the benefit excludes bottles by default
   if (selectedVendor === 'FAT_CAT') {
     body.cart = { paidItems: { scoop: document.getElementById('paidScoop')?.checked ? 1 : 0 } };
   }
