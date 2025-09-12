@@ -1007,9 +1007,8 @@ async function redeem() {
       resultDiv.innerHTML = \`
         <div class="result error">
           <div class="result-icon">❌</div>
-            <div class="result-title">Denied</div>
-            <div>\${result.reason || 'Unable to process redemption'}</div>
-          </div>
+          <div class="result-title">Denied</div>
+          <div>\${result.reason || 'Unable to process redemption'}</div>
         </div>
       \`;
     }
