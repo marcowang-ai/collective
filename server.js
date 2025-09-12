@@ -933,13 +933,10 @@ function selectKidsBenefit(benefitType) {
 async function redeem() {
   if (!selectedVendor) return;
 
-  // Ensure we have (fresh) location if geofence enforced
   if (!userLocation && navigator.geolocation) {
     userLocation = await getGeo();
   }
-
   if (${ENFORCE_GEOFENCE} && !userLocation) {
-    // Show error immediately
     const resultDiv = document.getElementById('result');
     resultDiv.style.display = 'block';
     resultDiv.innerHTML = `
@@ -957,10 +954,7 @@ async function redeem() {
     : DEFAULT_BENEFIT[selectedVendor];
 
   const body = { passId: PID };
-
-  // Include geo if available
   if (userLocation) body.geo = userLocation;
-
   if (selectedVendor === 'FAT_CAT') {
     body.cart = { paidItems: { scoop: document.getElementById('paidScoop')?.checked ? 1 : 0 } };
   }
@@ -968,7 +962,6 @@ async function redeem() {
     body.context = { purchaseScope: 'CAFE' };
   }
 
-  // Show loading
   const resultDiv = document.getElementById('result');
   resultDiv.style.display = 'block';
   resultDiv.innerHTML = `
@@ -984,7 +977,7 @@ async function redeem() {
   btn.textContent = 'Processing...';
 
   try {
-    const response = await fetch(`/redeem/${selectedVendor}/${benefitKey}`, {
+    const response = await fetch(\`/redeem/\${selectedVendor}/\${benefitKey}\`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -994,43 +987,51 @@ async function redeem() {
     if (result.ok) {
       const benefit = DEALS[selectedVendor].benefits[benefitKey];
       const remaining = result.balances[benefit.passFieldRemaining];
-      resultDiv.innerHTML = `
+      resultDiv.innerHTML = \`
         <div class="result success">
           <div class="result-icon">✅</div>
           <div class="result-title">Approved!</div>
           <div style="margin-bottom: 16px;">
-            <strong>${DEALS[selectedVendor].label}</strong><br>
-            <span style="color: var(--text-muted);">${benefit.label}</span>
+            <strong>\${DEALS[selectedVendor].label}</strong><br>
+            <span style="color: var(--text-muted);">\${benefit.label}</span>
           </div>
           <div style="background: rgba(255,255,255,0.7); padding: 12px; border-radius: 8px;">
             <div style="color: var(--text-muted); font-size: 14px;">Remaining this month:</div>
             <div style="font-size: 18px; font-weight: 600; color: var(--success);">
-              ${remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left"}
+              \${remaining === "0" ? "⚠️ No more visits" : "✨ " + remaining + " visit left"}
             </div>
           </div>
         </div>
-      `;
+      \`;
     } else {
-      resultDiv.innerHTML = `
+      resultDiv.innerHTML = \`
         <div class="result error">
           <div class="result-icon">❌</div>
-          <div class="result-title">Denied</div>
-          <div>${result.reason || 'Unable to process redemption'}</div>
+            <div class="result-title">Denied</div>
+            <div>\${result.reason || 'Unable to process redemption'}</div>
+          </div>
         </div>
-      `;
+      \`;
     }
   } catch (error) {
-    resultDiv.innerHTML = `
+    resultDiv.innerHTML = \`
       <div class="result error">
         <div class="result-icon">⚠️</div>
         <div class="result-title">Error</div>
-        <div>${error.message}</div>
+        <div>\${error.message}</div>
       </div>
-    `;
+    \`;
   } finally {
     btn.disabled = false;
     btn.textContent = 'Redeem Again';
     resultDiv.scrollIntoView({ behavior: 'smooth' });
   }
 }
-// ...existing code...
+</script>
+`);
+});
+
+// Start the server
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
