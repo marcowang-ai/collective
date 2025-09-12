@@ -288,12 +288,24 @@ app.post("/issue-badge", async (req, res) => {
     },
     pass: {
       id: memberId,
+      // TryBadge may support one of these forms for QR content:
+      barcode: {
+        format: "QR_CODE",
+        message: `https://flowe-collective.onrender.com/s?pid=${memberId}`
+      },
+      // If API expects plural:
+      barcodes: [{
+        format: "QR_CODE",
+        message: `https://flowe-collective.onrender.com/s?pid=${memberId}`
+      }],
+      // Fallback custom attribute you can bind manually in dashboard:
       attributes: {
         holder_name: name,
         display_name: name,
         pass_id: memberId,
         member_id: memberId,
-        redeem_url: `https://flowe-collective.onrender.com/s?pid=${memberId}`, // NEW
+        redeem_url: `https://flowe-collective.onrender.com/s?pid=${memberId}`,
+        qr_value: `https://flowe-collective.onrender.com/s?pid=${memberId}`,
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
