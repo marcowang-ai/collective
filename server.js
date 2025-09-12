@@ -17,7 +17,7 @@ const LOC = {
   KIDS_CREATE:   { lat: 29.816755283414313, lng: -95.42137848171349, radius: 7 },
   TULUM:         { lat: 29.817021307396466, lng: -95.42145858820318, radius: 7 }
 };
-const ENFORCE_GEOFENCE = true; // Enable geofencing
+const ENFORCE_GEOFENCE = true; // Changed to true
 
 // Default benefit per vendor (match your DEALS)
 const DEFAULT_BENEFIT = {
@@ -194,8 +194,6 @@ app.post("/issue-test-badge", async (req, res) => {
         display_name: "Demo User",
         pass_id: "P-001",  // Added for display
         member_id: "P-001", // Added for display
-        expiration_date: getOneYearFromNow(), // 1 year expiration
-        current_month: getCurrentMonthKey(), // Track current month for renewals
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
@@ -265,8 +263,6 @@ app.post("/issue-badge", async (req, res) => {
         display_name: name,
         pass_id: memberId,  // Added for display
         member_id: memberId, // Added for display
-        expiration_date: getOneYearFromNow(), // 1 year expiration
-        current_month: getCurrentMonthKey(), // Track current month for renewals
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
@@ -306,99 +302,36 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
     return res.status(400).json({ ok: false, reason: "MISSING_PASS_ID" });
   }
 
-  try {
-    // Check pass validity and reset benefits if needed
-    const passAttributes = await checkAndResetMonthlyBenefits(passId);
-    
-    // Get the specific benefit field for this vendor/benefit
-    const deal = DEALS[vendorKey];
-    if (!deal || !deal.benefits[benefitKey]) {
-      return res.status(400).json({ ok: false, reason: "INVALID_BENEFIT" });
+  // Geofence check
+  const loc = LOC[vendorKey];
+  if (loc) {
+    if (!geo) {
+      if (ENFORCE_GEOFENCE) return res.json({ ok: false, reason: "GEO_REQUIRED" });
+    } else if (!withinFence(geo, loc)) {
+      if (ENFORCE_GEOFENCE) return res.json({ ok: false, reason: "OUT_OF_GEOFENCE" });
     }
-    
-    const benefit = deal.benefits[benefitKey];
-    const remainingField = benefit.passFieldRemaining;
-    const currentRemaining = parseInt(passAttributes[remainingField] || "0");
-    
-    // Check if benefit is already used up
-    if (currentRemaining <= 0) {
-      return res.json({ ok: false, reason: "BENEFIT_EXHAUSTED" });
-    }
-
-    // Geofence check
-    const loc = LOC[vendorKey];
-    if (loc) {
-      if (!geo) {
-        if (ENFORCE_GEOFENCE) return res.json({ ok: false, reason: "GEO_REQUIRED" });
-      } else if (!withinFence(geo, loc)) {
-        if (ENFORCE_GEOFENCE) return res.json({ ok: false, reason: "OUT_OF_GEOFENCE" });
-      }
-    }
-
-    // Update the specific benefit field by decrementing
-    const newRemaining = currentRemaining - 1;
-    const updatePayload = {
-      passTemplateId: BADGE_TEMPLATE_ID,
-      pass: {
-        id: passId,
-        attributes: {
-          ...passAttributes,
-          [remainingField]: newRemaining.toString()
-        }
-      }
-    };
-
-    // Update the pass with new remaining count
-    const updateResponse = await fetch("https://api.trybadge.com/v0/rpc/userPassUpsert", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${BADGE_API_KEY}`,
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(updatePayload)
-    });
-
-    if (!updateResponse.ok) {
-      throw new Error(`Failed to update pass: ${updateResponse.status}`);
-    }
-
-    // Prepare updated balances for response
-    const updatedBalances = {
-      ...passAttributes,
-      [remainingField]: newRemaining.toString()
-    };
-
-    res.json({
-      ok: true,
-      vendorKey,
-      benefitKey,
-      passId,
-      geoValidated: !!loc && !!geo && withinFence(geo, loc),
-      balances: {
-        sonoma_remaining: updatedBalances.sonoma_remaining || "1",
-        littlesister_remaining: updatedBalances.littlesister_remaining || "1",
-        fatcat_remaining: updatedBalances.fatcat_remaining || "1",
-        polishbar_remaining: updatedBalances.polishbar_remaining || "1",
-        threadfare_remaining: updatedBalances.threadfare_remaining || "1",
-        kidscreate_workshop_remaining: updatedBalances.kidscreate_workshop_remaining || "1",
-        kidscreate_retail_remaining: updatedBalances.kidscreate_retail_remaining || "1",
-        tulum_remaining: updatedBalances.tulum_remaining || "1"
-      }
-    });
-
-  } catch (error) {
-    console.error('Redemption error:', error);
-    
-    if (error.message === 'PASS_EXPIRED') {
-      return res.json({ ok: false, reason: "PASS_EXPIRED" });
-    }
-    
-    return res.status(500).json({ 
-      ok: false, 
-      reason: "SERVER_ERROR",
-      error: error.message 
-    });
   }
+
+  // Return updated balances after redemption
+  const balances = {
+    sonoma_remaining: vendorKey === "SONOMA" ? "0" : "1",
+    littlesister_remaining: vendorKey === "LITTLE_SISTER" ? "0" : "1",
+    fatcat_remaining: vendorKey === "FAT_CAT" ? "0" : "1",
+    polishbar_remaining: vendorKey === "POLISH_BAR" ? "0" : "1",
+    threadfare_remaining: vendorKey === "THREADFARE" ? "0" : "1",
+    kidscreate_workshop_remaining: vendorKey === "KIDS_CREATE" && benefitKey === "FRIDAY_WORKSHOP" ? "0" : "1",
+    kidscreate_retail_remaining: vendorKey === "KIDS_CREATE" && benefitKey === "RETAIL_15_1X" ? "0" : "1",
+    tulum_remaining: vendorKey === "TULUM" ? "0" : "1"
+  };
+
+  res.json({
+    ok: true,
+    vendorKey,
+    benefitKey,
+    passId,
+    geoValidated: !!loc && !!geo && withinFence(geo, loc),
+    balances
+  });
 });
 
 async function getGeo() {
@@ -431,54 +364,22 @@ app.get("/test-pass", (req, res) => {
 });
 
 // Add this before app.listen()
-app.get("/pid", async (req, res) => {
-  const testPid = req.query.pid || "P-001";
-  
-  try {
-    // Check and potentially reset monthly benefits
-    const passAttributes = await checkAndResetMonthlyBenefits(testPid);
-    
-    res.json({ 
-      ok: true, 
-      pid: testPid,
-      now: Date.now(),
-      expiration_date: passAttributes.expiration_date,
-      current_month: passAttributes.current_month,
-      remaining: {
-        sonoma_remaining: passAttributes.sonoma_remaining || "1",
-        littlesister_remaining: passAttributes.littlesister_remaining || "1",
-        fatcat_remaining: passAttributes.fatcat_remaining || "1",
-        polishbar_remaining: passAttributes.polishbar_remaining || "1",
-        threadfare_remaining: passAttributes.threadfare_remaining || "1",
-        kidscreate_workshop_remaining: passAttributes.kidscreate_workshop_remaining || "1",
-        kidscreate_retail_remaining: passAttributes.kidscreate_retail_remaining || "1",
-        tulum_remaining: passAttributes.tulum_remaining || "1"
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching PID data:', error);
-    
-    if (error.message === 'PASS_EXPIRED') {
-      return res.json({ ok: false, reason: "PASS_EXPIRED" });
+app.get("/pid", (_req, res) => {
+  const testPid = "P-001";
+  res.json({ 
+    ok: true, 
+    pid: testPid,
+    now: Date.now(),
+    remaining: {
+      sonoma_remaining: "1",
+      littlesister_remaining: "1",
+      fatcat_remaining: "1",
+      polishbar_remaining: "1",
+      threadfare_remaining: "1",
+      kidscreate_workshop_remaining: "1",
+      kidscreate_retail_remaining: "1"
     }
-    
-    // Fallback to static data if pass doesn't exist or API call fails
-    res.json({ 
-      ok: true, 
-      pid: testPid,
-      now: Date.now(),
-      remaining: {
-        sonoma_remaining: "1",
-        littlesister_remaining: "1",
-        fatcat_remaining: "1",
-        polishbar_remaining: "1",
-        threadfare_remaining: "1",
-        kidscreate_workshop_remaining: "1",
-        kidscreate_retail_remaining: "1",
-        tulum_remaining: "1"
-      }
-    });
-  }
+  });
 });
 
 // Add before app.listen()
@@ -986,7 +887,9 @@ async function redeem() {
   const body = { passId: PID };
   
   // Add vendor-specific data (but not geo for validation)
-  // Remove Sonoma cart data since the benefit excludes bottles by default
+  if (selectedVendor === 'SONOMA') {
+    body.cart = { hasBottle: document.getElementById('hasBottle')?.checked || false };
+  }
   if (selectedVendor === 'FAT_CAT') {
     body.cart = { paidItems: { scoop: document.getElementById('paidScoop')?.checked ? 1 : 0 } };
   }
@@ -1782,122 +1685,6 @@ app.use((req, res) => {
     path: req.path
   });
 });
-
-// Add these helper functions after your DEALS object and before the app setup:
-
-function getOneYearFromNow() {
-  const now = new Date();
-  const oneYearLater = new Date(now.getFullYear() + 1, now.getMonth(), now.getDate(), 23, 59, 59);
-  return oneYearLater.toISOString();
-}
-
-function isPassExpired(expirationDate) {
-  if (!expirationDate) return false; // No expiration date means pass doesn't expire
-  const now = new Date();
-  const expiry = new Date(expirationDate);
-  return now > expiry;
-}
-
-function getCurrentMonthKey() {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-}
-
-async function checkAndResetMonthlyBenefits(passId) {
-  const currentMonth = getCurrentMonthKey();
-  
-  try {
-    // First, get the current pass data
-    const getResponse = await fetch(`https://api.trybadge.com/v0/passes/${passId}`, {
-      method: "GET",
-      headers: {
-        "Authorization": `Bearer ${BADGE_API_KEY}`,
-        "Content-Type": "application/json"
-      }
-    });
-    
-    if (!getResponse.ok) {
-      throw new Error(`Failed to get pass ${passId}: ${getResponse.status}`);
-    }
-    
-    const passData = await getResponse.json();
-    console.log('Pass data structure:', JSON.stringify(passData, null, 2));
-    
-    // Handle different possible response structures from Badge API
-    let attributes = passData.attributes || passData.pass?.attributes || passData;
-    
-    if (!attributes) {
-      throw new Error('No attributes found in pass data');
-    }
-    
-    // Check if pass is expired
-    if (isPassExpired(attributes.expiration_date)) {
-      throw new Error('PASS_EXPIRED');
-    }
-    
-    const storedMonth = attributes.current_month;
-    console.log(`Current month: ${currentMonth}, Stored month: ${storedMonth}`);
-    
-    // If it's a new month, reset benefits
-    if (storedMonth !== currentMonth) {
-      console.log(`Resetting benefits for new month: ${currentMonth}`);
-      
-      const resetPayload = {
-        passTemplateId: BADGE_TEMPLATE_ID,
-        pass: {
-          id: passId,
-          attributes: {
-            ...attributes, // Preserve all existing attributes
-            current_month: currentMonth, // Update to current month
-            sonoma_remaining: "1",
-            littlesister_remaining: "1",
-            fatcat_remaining: "1",
-            polishbar_remaining: "1",
-            threadfare_remaining: "1",
-            kidscreate_workshop_remaining: "1",
-            kidscreate_retail_remaining: "1",
-            tulum_remaining: "1"
-          }
-        }
-      };
-      
-      const updateResponse = await fetch("https://api.trybadge.com/v0/rpc/userPassUpsert", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${BADGE_API_KEY}`,
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(resetPayload)
-      });
-      
-      if (!updateResponse.ok) {
-        throw new Error(`Failed to reset benefits: ${updateResponse.status}`);
-      }
-      
-      console.log(`Benefits reset for pass ${passId} for month ${currentMonth}`);
-      const resetResult = await updateResponse.json();
-      
-      // Return updated attributes
-      return {
-        ...attributes,
-        current_month: currentMonth,
-        sonoma_remaining: "1",
-        littlesister_remaining: "1",
-        fatcat_remaining: "1",
-        polishbar_remaining: "1",
-        threadfare_remaining: "1",
-        kidscreate_workshop_remaining: "1",
-        kidscreate_retail_remaining: "1",
-        tulum_remaining: "1"
-      };
-    }
-    
-    return attributes;
-  } catch (error) {
-    console.error('Error checking/resetting monthly benefits:', error);
-    throw error;
-  }
-}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
