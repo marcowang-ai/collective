@@ -842,29 +842,29 @@ function renderStandardControls(vendorKey) {
   
   // Removed bottle checkbox for SONOMA (benefit already excludes bottles)
   if (vendorKey === 'FAT_CAT') {
-    extraControls = `
+    extraControls = \`
       <div style="margin-bottom: 16px;">
         <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
           <input type="checkbox" id="paidScoop" checked style="width: 18px; height: 18px;">
           <span>Order includes paid scoop</span>
         </label>
       </div>
-    `;
+    \`;
   }
   
-  document.getElementById('controls').innerHTML = `
-    <h3 style="margin-top: 0; text-align: center; color: var(--primary);">${deal.label}</h3>
+  document.getElementById('controls').innerHTML = \`
+    <h3 style="margin-top: 0; text-align: center; color: var(--primary);">\${deal.label}</h3>
     <div style="text-align: center; margin-bottom: 20px;">
-      <div class="shop-benefit">${benefit.label}</div>
-      <div class="shop-benefit-desc">${benefit.description}</div>
+      <div class="shop-benefit">\${benefit.label}</div>
+      <div class="shop-benefit-desc">\${benefit.description}</div>
     </div>
-    ${extraControls}
+    \${extraControls}
     <div class="controls">
       <button class="redeem-btn" onclick="redeem()">
-        Redeem ${benefit.label}
+        Redeem \${benefit.label}
       </button>
     </div>
-  `;
+  \`;
 }
 
 function selectKidsBenefit(benefitType) {
