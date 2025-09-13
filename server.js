@@ -340,6 +340,15 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
   const { vendorKey, benefitKey } = req.params;
   const { passId, geo } = req.body || {};
 
+  console.log('Redeem debug:', { 
+    vendorKey, 
+    benefitKey, 
+    passId, 
+    hasGeo: !!geo,
+    geo: geo,
+    enforceGeofence: ENFORCE_GEOFENCE 
+  });
+
   if (!passId) return res.status(400).json({ ok: false, reason: "MISSING_PASS_ID" });
 
   // Geofence
