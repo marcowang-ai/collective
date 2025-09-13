@@ -43,7 +43,7 @@ const DEALS = {
         description: "Get 10% off your total purchase (excludes bottle purchases)",
         maxPerMonth: 1,
         passFieldRemaining: "sonoma_remaining",
-        conditions: { excludeBottlePurchases: true }
+        conditions: { excludeBottles: true } // Fixed: was incomplete
       }
     }
   },
@@ -156,12 +156,24 @@ function monthKey() {
 
 function getPassState(passId) {
   if (!passStore.has(passId)) {
-    passStore.set(passId, { ...PASS_DEFAULTS, current_month: monthKey() });
+    const issueDate = new Date().toISOString().split('T')[0];
+    const expirationDate = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    passStore.set(passId, { 
+      ...PASS_DEFAULTS, 
+      current_month: monthKey(),
+      issued_date: issueDate,
+      expiration_date: expirationDate
+    });
   }
   const state = passStore.get(passId);
   if (state.current_month !== monthKey()) {
-    // Reset for new month
-    Object.assign(state, { ...PASS_DEFAULTS, current_month: monthKey() });
+    // Reset for new month (but keep expiration dates)
+    Object.assign(state, { 
+      ...PASS_DEFAULTS, 
+      current_month: monthKey(),
+      issued_date: state.issued_date, // Keep original
+      expiration_date: state.expiration_date // Keep original
+    });
   }
   return state;
 }
@@ -306,6 +318,8 @@ app.post("/issue-badge", async (req, res) => {
         member_id: memberId,
         redeem_url: `https://flowe-collective.onrender.com/s?pid=${memberId}`,
         qr_value: `https://flowe-collective.onrender.com/s?pid=${memberId}`,
+        issued_date: new Date().toISOString().split('T')[0], // "2025-09-13"
+        expiration_date: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // "2026-09-13"
         sonoma_remaining: "1",
         littlesister_remaining: "1",
         fatcat_remaining: "1",
@@ -375,6 +389,14 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
 
   // Load & monthly-reset state
   const state = getPassState(passId);
+
+  // Check if pass has expired (date only, no time)
+  if (state.expiration_date) {
+    const today = new Date().toISOString().split('T')[0];
+    if (today > state.expiration_date) {
+      return res.json({ ok: false, reason: "PASS_EXPIRED" });
+    }
+  }
 
   const remaining = parseInt(state[field] || "0", 10);
   if (remaining <= 0) {
