@@ -1020,6 +1020,52 @@ async function redeem() {
     resultDiv.scrollIntoView({ behavior: 'smooth' });
   }
 }
+
+// Initialize
+(async function init() {
+  // Show pass ID
+  document.getElementById('passId').textContent = PID || 'Invalid';
+  
+  if (!PID) {
+    document.getElementById('result').style.display = 'block';
+    document.getElementById('result').innerHTML = \`
+      <div class="result error">
+        <div class="result-icon">⚠️</div>
+        <div class="result-title">Invalid Pass</div>
+        <div>No pass ID found in URL</div>
+      </div>
+    \`;
+    return;
+  }
+
+  // Try to get location
+  if (navigator.geolocation) {
+    document.getElementById('locationStatus').style.display = 'block';
+    
+    try {
+      userLocation = await getGeo();
+      if (userLocation) {
+        const nearest = findNearestShop(userLocation.lat, userLocation.lng);
+        if (nearest && nearest.withinRadius) {
+          document.getElementById('locationStatus').innerHTML = \`
+            <span class="status-indicator status-success">
+              📍 You're near \${DEALS[nearest.key].label}
+            </span>
+          \`;
+        } else {
+          document.getElementById('locationStatus').style.display = 'none';
+        }
+      } else {
+        document.getElementById('locationStatus').style.display = 'none';
+      }
+    } catch (error) {
+      document.getElementById('locationStatus').style.display = 'none';
+    }
+  }
+
+  // Render shops
+  renderShops();
+})();
 </script>`);
 });
 
