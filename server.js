@@ -1,6 +1,8 @@
 import express from 'express';
 import 'dotenv/config';
 import cors from 'cors';
+import fs from 'fs';
+import path from 'path';
 
 // ENV vars
 const BADGE_API_KEY = process.env.BADGE_API_KEY;
@@ -349,7 +351,35 @@ app.post("/issue-badge", async (req, res) => {
   }
 });
 
-// Redeem benefit endpoint
+// CSV logging functions
+function ensureLogFile() {
+  const logPath = path.join(process.cwd(), 'redemption_logs.csv');
+  if (!fs.existsSync(logPath)) {
+    const headers = 'timestamp,date,passId,memberName,memberEmail,vendorKey,benefitKey,success,reason,geoValidated\n';
+    fs.writeFileSync(logPath, headers);
+  }
+  return logPath;
+}
+
+function logRedemption(logData) {
+  const logPath = ensureLogFile();
+  const csvRow = [
+    new Date().toISOString(),
+    new Date().toLocaleDateString(),
+    logData.passId || '',
+    logData.memberName || '',
+    logData.memberEmail || '',
+    logData.vendorKey || '',
+    logData.benefitKey || '',
+    logData.success ? 'TRUE' : 'FALSE',
+    logData.reason || '',
+    logData.geoValidated ? 'TRUE' : 'FALSE'
+  ].map(field => `"${String(field).replace(/"/g, '""')}"`).join(',') + '\n';
+  
+  fs.appendFileSync(logPath, csvRow);
+}
+
+// Enhanced redeem endpoint with user lookup and logging
 app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
   const { vendorKey, benefitKey } = req.params;
   const { passId, geo } = req.body || {};
@@ -365,13 +395,54 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
 
   if (!passId) return res.status(400).json({ ok: false, reason: "MISSING_PASS_ID" });
 
+  // Lookup user details from Badge API
+  let memberName = 'Unknown';
+  let memberEmail = 'Unknown';
+  
+  try {
+    if (BADGE_API_KEY) {
+      const userResponse = await fetch("https://api.trybadge.com/v0/rpc/userGet", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${BADGE_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ userId: `user_${passId}` })
+      });
+      
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        memberName = userData?.user?.attributes?.name || 'Unknown';
+        memberEmail = userData?.user?.attributes?.email || 'Unknown';
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to lookup user details:', error.message);
+  }
+
   // Geofence
   const loc = LOC[vendorKey];
+  let geoValidated = false;
+  
   if (loc) {
     if (!geo) {
-      if (ENFORCE_GEOFENCE) return res.json({ ok: false, reason: "GEO_REQUIRED" });
+      if (ENFORCE_GEOFENCE) {
+        logRedemption({
+          passId, memberName, memberEmail, vendorKey, benefitKey,
+          success: false, reason: "GEO_REQUIRED", geoValidated: false
+        });
+        return res.json({ ok: false, reason: "GEO_REQUIRED" });
+      }
     } else if (!withinFence(geo, loc)) {
-      if (ENFORCE_GEOFENCE) return res.json({ ok: false, reason: "OUT_OF_GEOFENCE" });
+      if (ENFORCE_GEOFENCE) {
+        logRedemption({
+          passId, memberName, memberEmail, vendorKey, benefitKey,
+          success: false, reason: "OUT_OF_GEOFENCE", geoValidated: false
+        });
+        return res.json({ ok: false, reason: "OUT_OF_GEOFENCE" });
+      }
+    } else {
+      geoValidated = true;
     }
   }
 
@@ -379,27 +450,43 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
   const vendor = DEALS[vendorKey];
   const benefitDef = vendor?.benefits?.[benefitKey];
   if (!vendor || !benefitDef) {
+    logRedemption({
+      passId, memberName, memberEmail, vendorKey, benefitKey,
+      success: false, reason: "INVALID_BENEFIT", geoValidated
+    });
     return res.json({ ok: false, reason: "INVALID_BENEFIT" });
   }
 
   const field = benefitDef.passFieldRemaining;
   if (!field) {
+    logRedemption({
+      passId, memberName, memberEmail, vendorKey, benefitKey,
+      success: false, reason: "MISSING_FIELD_MAPPING", geoValidated
+    });
     return res.json({ ok: false, reason: "MISSING_FIELD_MAPPING" });
   }
 
   // Load & monthly-reset state
   const state = getPassState(passId);
 
-  // Check if pass has expired (date only, no time)
+  // Check if pass has expired
   if (state.expiration_date) {
     const today = new Date().toISOString().split('T')[0];
     if (today > state.expiration_date) {
+      logRedemption({
+        passId, memberName, memberEmail, vendorKey, benefitKey,
+        success: false, reason: "PASS_EXPIRED", geoValidated
+      });
       return res.json({ ok: false, reason: "PASS_EXPIRED" });
     }
   }
 
   const remaining = parseInt(state[field] || "0", 10);
   if (remaining <= 0) {
+    logRedemption({
+      passId, memberName, memberEmail, vendorKey, benefitKey,
+      success: false, reason: "BENEFIT_EXHAUSTED", geoValidated
+    });
     return res.json({
       ok: false,
       reason: "BENEFIT_EXHAUSTED",
@@ -410,15 +497,20 @@ app.post("/redeem/:vendorKey/:benefitKey", async (req, res) => {
     });
   }
 
-  // Decrement
+  // SUCCESS - Decrement and log
   state[field] = String(remaining - 1);
+  
+  logRedemption({
+    passId, memberName, memberEmail, vendorKey, benefitKey,
+    success: true, reason: "SUCCESS", geoValidated
+  });
 
   return res.json({
     ok: true,
     vendorKey,
     benefitKey,
     passId,
-    geoValidated: !!loc && !!geo && withinFence(geo, loc),
+    geoValidated,
     balances: state
   });
 });
