@@ -933,10 +933,19 @@ function selectKidsBenefit(benefitType) {
 async function redeem() {
   if (!selectedVendor) return;
   
+  // Get fresh location if geofencing is enforced
+  if (!userLocation) {
+    userLocation = await getGeo();
+  }
+  
   const benefitKey = selectedVendor === 'KIDS_CREATE' ? selectedKidsBenefit : DEFAULT_BENEFIT[selectedVendor];
   const body = { passId: PID };
   
-  // Removed SONOMA bottle cart payload (no longer needed)
+  // Add geo data to request
+  if (userLocation) {
+    body.geo = userLocation;
+  }
+  
   if (selectedVendor === 'FAT_CAT') {
     body.cart = { paidItems: { scoop: document.getElementById('paidScoop')?.checked ? 1 : 0 } };
   }
@@ -955,7 +964,6 @@ async function redeem() {
     </div>
   \`;
 
-  // Disable button
   const btn = document.querySelector('.redeem-btn');
   btn.disabled = true;
   btn.textContent = 'Processing...';
@@ -1012,52 +1020,6 @@ async function redeem() {
     resultDiv.scrollIntoView({ behavior: 'smooth' });
   }
 }
-
-// Initialize
-(async function init() {
-  // Show pass ID
-  document.getElementById('passId').textContent = PID || 'Invalid';
-  
-  if (!PID) {
-    document.getElementById('result').style.display = 'block';
-    document.getElementById('result').innerHTML = \`
-      <div class="result error">
-        <div class="result-icon">⚠️</div>
-        <div class="result-title">Invalid Pass</div>
-        <div>No pass ID found in URL</div>
-      </div>
-    \`;
-    return;
-  }
-
-  // Try to get location
-  if (navigator.geolocation) {
-    document.getElementById('locationStatus').style.display = 'block';
-    
-    try {
-      userLocation = await getGeo();
-      if (userLocation) {
-        const nearest = findNearestShop(userLocation.lat, userLocation.lng);
-        if (nearest && nearest.withinRadius) {
-          document.getElementById('locationStatus').innerHTML = \`
-            <span class="status-indicator status-success">
-              📍 You're near \${DEALS[nearest.key].label}
-            </span>
-          \`;
-        } else {
-          document.getElementById('locationStatus').style.display = 'none';
-        }
-      } else {
-        document.getElementById('locationStatus').style.display = 'none';
-      }
-    } catch (error) {
-      document.getElementById('locationStatus').style.display = 'none';
-    }
-  }
-
-  // Render shops
-  renderShops();
-})();
 </script>`);
 });
 
